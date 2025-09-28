@@ -1,7 +1,7 @@
-jQuery(document).ready(function($){
+jQuery(document).ready(function ($) {
 
   // --- Cargar organizaciones ---
-  $('#wp2linkedin-load-orgs').on('click', function(e){
+  $('#wp2linkedin-load-orgs').on('click', function (e) {
     e.preventDefault();
     var $btn = $(this);
     $btn.prop('disabled', true).text('Cargando...');
@@ -9,12 +9,12 @@ jQuery(document).ready(function($){
     $.post(wplp.ajaxurl, {
       action: 'wp2linkedin_get_orgs',
       _ajax_nonce: wplp.nonce
-    }, function(response){
+    }, function (response) {
       var $select = $('#wp2linkedin-org-select');
       $select.empty();
 
       if (Array.isArray(response) && response.length) {
-        response.forEach(function(org){
+        response.forEach(function (org) {
           $select.append('<option value="' + org.id + '">' + org.name + '</option>');
         });
       } else {
@@ -22,14 +22,14 @@ jQuery(document).ready(function($){
       }
 
       $btn.prop('disabled', false).text('Cargar organizaciones');
-    }).fail(function(){
+    }).fail(function () {
       console.error('Error al cargar organizaciones.');
       $btn.prop('disabled', false).text('Cargar organizaciones');
     });
   });
 
   // --- Guardar organización ---
-  $('#wp2linkedin-confirm-org').on('click', function(e){
+  $('#wp2linkedin-confirm-org').on('click', function (e) {
     e.preventDefault();
 
     var orgId = $('#wp2linkedin-org-select').val();
@@ -42,45 +42,46 @@ jQuery(document).ready(function($){
       action: 'wplp_save_org',
       org_id: orgId,
       _ajax_nonce: wplp.nonce
-    }, function(response){
+    }, function (response) {
       if (response.success) {
         alert('✅ Organización guardada correctamente: ' + orgId);
         location.reload(); // refresca la página para mostrar la notificación verde
       } else {
         alert('❌ Error al guardar la organización.');
       }
-    }).fail(function(){
+    }).fail(function () {
       alert('❌ Error de AJAX al guardar la organización.');
     });
   });
 
   // --- Publicar post en LinkedIn ---
-  $('#linkedin-publish-btn').on('click', function(e){
+  $('#linkedin-publish-btn').on('click', function (e) {
     e.preventDefault();
 
     var $btn = $(this);
-    var postId = $btn.data('post-id'); // Asegurate de que el botón tenga data-post-id
+    var postId = $btn.data('post-id');
     if (!postId) {
       alert('❌ Post ID no definido.');
       return;
     }
 
+    var originalText = $btn.text(); // Guardamos texto original
     $btn.prop('disabled', true).text('Publicando...');
 
     $.post(wplp.ajaxurl, {
       action: 'linkedin_publish_post',
       post_id: postId,
       security: wplp.nonce
-    }, function(response){
+    }, function (response) {
       if (response.success) {
         alert(response.data.message);
       } else {
         alert(response.data.message || '❌ Error al publicar.');
       }
       location.reload();
-    }).fail(function(){
+    }).fail(function () {
       alert('❌ Error de AJAX al publicar el post.');
-      $btn.prop('disabled', false).text('Publicar en LinkedIn');
+      $btn.prop('disabled', false).text(originalText); // Volvemos al texto original
     });
   });
 
