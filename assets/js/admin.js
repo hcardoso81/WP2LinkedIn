@@ -1,6 +1,3 @@
-/**
- * WP2LinkedIn – Admin Scripts
- */
 jQuery(document).ready(function($) {
 
   // Botón para cargar organizaciones
@@ -10,9 +7,9 @@ jQuery(document).ready(function($) {
     var $btn = $(this);
     $btn.prop('disabled', true).text('Cargando...');
 
-    $.post(wp2linkedin.ajaxurl, {
+    $.post(wplp.ajaxurl, {
       action: 'wp2linkedin_get_orgs',
-      _ajax_nonce: wp2linkedin.nonce
+      _ajax_nonce: wplp.nonce
     }, function(response) {
       var $select = $('#wp2linkedin-org-select');
       $select.empty();
@@ -37,10 +34,10 @@ jQuery(document).ready(function($) {
   $('#wp2linkedin-org-select').on('change', function() {
     var orgId = $(this).val();
 
-    $.post(wp2linkedin.ajaxurl, {
+    $.post(wplp.ajaxurl, {
       action: 'wplp_save_org',
       org_id: orgId,
-      _ajax_nonce: wp2linkedin.nonce
+      _ajax_nonce: wplp.nonce
     }, function(response) {
       if (response.success) {
         console.log('Organización guardada correctamente.');
