@@ -14,7 +14,23 @@ class WPLP_Poster {
 
     public function publish_to_linkedin($post_id, $post) {
         if (wp_is_post_revision($post_id)) return;
-        if (get_post_meta($post_id, '_linkedin_posted', true)) return;
+
+        // Evitar duplicados
+        if (get_post_meta($post_id, '_linkedin_posted', true)) {
+            error_log("LinkedIn Poster: Post $post_id ya publicado.");
+            return;
+        }
+
+        // Validaciones
+        if (!$this->token) {
+            error_log("LinkedIn Poster ERROR: No hay token configurado.");
+            return;
+        }
+
+        if (!$this->org_id) {
+            error_log("LinkedIn Poster ERROR: No hay organización por defecto configurada.");
+            return;
+        }
 
         $title   = get_the_title($post_id);
         $excerpt = wp_trim_words(strip_tags($post->post_content), 40);
@@ -49,8 +65,23 @@ class WPLP_Poster {
             'body' => wp_json_encode($body)
         ]);
 
-        if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 201) {
+        // Logs detallados para depuración
+        if (is_wp_error($response)) {
+            error_log("LinkedIn Poster ERROR (WP_Error): " . $response->get_error_message());
+            return;
+        }
+
+        $http_code = wp_remote_retrieve_response_code($response);
+        $body_resp = wp_remote_retrieve_body($response);
+
+        error_log("LinkedIn Poster: HTTP $http_code - Response: $body_resp");
+
+        if ($http_code === 201) {
             update_post_meta($post_id, '_linkedin_posted', 1);
+            update_post_meta($post_id, '_linkedin_posted_date', current_time('mysql'));
+            error_log("LinkedIn Poster: Post $post_id publicado correctamente.");
+        } else {
+            error_log("LinkedIn Poster ERROR: No se pudo publicar el post $post_id.");
         }
     }
 }

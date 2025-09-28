@@ -92,6 +92,15 @@ class WPLP_Admin
                     <option value="<?php echo esc_attr($org_id); ?>" selected><?php echo esc_html($org_id); ?></option>
                 <?php endif; ?>
             </select>
+            <p>
+                <button id="wp2linkedin-confirm-org" class="button button-primary">Confirmar organización</button>
+            </p>
+
+            <?php if ($org_id): ?>
+                <div class="wp2linkedin-status success">
+                    ✅ Organización por defecto: <strong><?php echo esc_html($org_id); ?></strong>
+                </div>
+            <?php endif; ?>
         </div>
 <?php
     }

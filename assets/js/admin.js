@@ -30,9 +30,15 @@ jQuery(document).ready(function($) {
     });
   });
 
-  // Guardar organización seleccionada
-  $('#wp2linkedin-org-select').on('change', function() {
-    var orgId = $(this).val();
+  // Guardar organización seleccionada con botón Confirmar
+  $('#wp2linkedin-confirm-org').on('click', function(e) {
+    e.preventDefault();
+
+    var orgId = $('#wp2linkedin-org-select').val();
+    if (!orgId) {
+      alert('Selecciona una organización primero.');
+      return;
+    }
 
     $.post(wplp.ajaxurl, {
       action: 'wplp_save_org',
@@ -40,12 +46,13 @@ jQuery(document).ready(function($) {
       _ajax_nonce: wplp.nonce
     }, function(response) {
       if (response.success) {
-        console.log('Organización guardada correctamente.');
+        alert('✅ Organización guardada correctamente: ' + orgId);
+        location.reload(); // refresca la página para mostrar la notificación verde
       } else {
-        console.error('Error al guardar la organización.');
+        alert('❌ Error al guardar la organización.');
       }
     }).fail(function() {
-      console.error('Error de AJAX al guardar la organización.');
+      alert('❌ Error de AJAX al guardar la organización.');
     });
   });
 
