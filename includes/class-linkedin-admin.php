@@ -68,7 +68,7 @@ class WPLP_Admin
                     <tr>
                         <th scope="row">Redirect URI</th>
                         <td>
-                            <input type="text" name="wp2linkedin_redirect_uri" value="<?php echo esc_attr($redirect_uri); ?>" class="regular-text" readonly>
+                            <input type="text" name="wp2linkedin_redirect_uri" value="<?php echo esc_attr(get_option('wp2linkedin_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'))); ?>" class="regular-text" readonly>
                             <p class="description">Copiar esta URL en la configuración de tu app de LinkedIn.</p>
                         </td>
                     </tr>
