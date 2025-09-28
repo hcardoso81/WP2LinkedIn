@@ -1,26 +1,16 @@
 <?php
-if (! defined('ABSPATH')) exit;
+if (!defined('ABSPATH')) exit;
 
 class WPLP_Admin
 {
     public function __construct()
     {
-        // Crear menú en el admin
         add_action('admin_menu', [$this, 'add_menu_page']);
-
-        // Registrar settings
         add_action('admin_init', [$this, 'register_settings']);
-
-        // Cargar assets en admin
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
-
-        // Guardar organización vía AJAX
         add_action('wp_ajax_wplp_save_org', [$this, 'ajax_save_org']);
     }
 
-    /**
-     * Agrega la página de opciones en Ajustes
-     */
     public function add_menu_page()
     {
         add_options_page(
@@ -32,19 +22,13 @@ class WPLP_Admin
         );
     }
 
-    /**
-     * Registra las opciones (Client ID, Client Secret y Redirect URI)
-     */
     public function register_settings()
     {
-        register_setting('wplp_settings', 'wplp_client_id');
-        register_setting('wplp_settings', 'wplp_client_secret');
-        register_setting('wplp_settings', 'wplp_redirect_uri');
+        register_setting('wplp_settings', 'wp2linkedin_client_id');
+        register_setting('wplp_settings', 'wp2linkedin_client_secret');
+        register_setting('wplp_settings', 'wp2linkedin_redirect_uri');
     }
 
-    /**
-     * Encola estilos y scripts
-     */
     public function enqueue_assets($hook)
     {
         if ($hook !== 'settings_page_wplp-settings') return;
@@ -58,19 +42,15 @@ class WPLP_Admin
         ]);
     }
 
-    /**
-     * Renderiza la página de configuración
-     */
     public function render_settings_page()
     {
-        $client_id     = get_option('wplp_client_id');
-        $client_secret = get_option('wplp_client_secret');
-        $redirect_uri  = get_option('wplp_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'));
-        $org_id        = get_option('wplp_default_org');
+        $client_id     = get_option('wp2linkedin_client_id');
+        $client_secret = get_option('wp2linkedin_client_secret');
+        $redirect_uri  = get_option('wp2linkedin_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'));
+        $org_id        = get_option('wp2linkedin_default_org');
 
         $oauth = new WPLP_OAuth();
-
-        ?>
+?>
         <div class="wrap wp2linkedin-settings">
             <h2>WP LinkedIn Poster – Configuración</h2>
 
@@ -78,17 +58,17 @@ class WPLP_Admin
                 <?php settings_fields('wplp_settings'); ?>
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><label for="wplp_client_id">Client ID</label></th>
-                        <td><input type="text" name="wplp_client_id" value="<?php echo esc_attr($client_id); ?>" class="regular-text"></td>
+                        <th scope="row"><label for="wp2linkedin_client_id">Client ID</label></th>
+                        <td><input type="text" name="wp2linkedin_client_id" value="<?php echo esc_attr($client_id); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="wplp_client_secret">Client Secret</label></th>
-                        <td><input type="password" name="wplp_client_secret" value="<?php echo esc_attr($client_secret); ?>" class="regular-text"></td>
+                        <th scope="row"><label for="wp2linkedin_client_secret">Client Secret</label></th>
+                        <td><input type="password" name="wp2linkedin_client_secret" value="<?php echo esc_attr($client_secret); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
                         <th scope="row">Redirect URI</th>
                         <td>
-                            <input type="text" name="wplp_redirect_uri" value="<?php echo esc_attr($redirect_uri); ?>" class="regular-text" readonly>
+                            <input type="text" name="wp2linkedin_redirect_uri" value="<?php echo esc_attr($redirect_uri); ?>" class="regular-text" readonly>
                             <p class="description">Copiar esta URL en la configuración de tu app de LinkedIn.</p>
                         </td>
                     </tr>
@@ -113,23 +93,20 @@ class WPLP_Admin
                 <?php endif; ?>
             </select>
         </div>
-        <?php
+<?php
     }
 
-    /**
-     * AJAX: guardar organización seleccionada
-     */
     public function ajax_save_org()
     {
         check_ajax_referer('wplp_nonce');
 
-        if (! current_user_can('manage_options')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error();
         }
 
         if (isset($_POST['org_id'])) {
             $org_id = sanitize_text_field($_POST['org_id']);
-            update_option('wplp_default_org', $org_id);
+            update_option('wp2linkedin_default_org', $org_id);
             wp_send_json_success();
         }
 
