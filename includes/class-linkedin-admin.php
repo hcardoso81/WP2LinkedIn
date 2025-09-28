@@ -46,7 +46,7 @@ class WPLP_Admin
     {
         $client_id     = get_option('wp2linkedin_client_id');
         $client_secret = get_option('wp2linkedin_client_secret');
-        $redirect_uri  = get_option('wp2linkedin_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'));
+        $redirect_uri  = get_option('wp2linkedin_redirect_uri', admin_url('admin.php?page=linkedin-oauth'));
         $org_id        = get_option('wp2linkedin_default_org');
 
         $oauth = new WPLP_OAuth();
@@ -68,8 +68,8 @@ class WPLP_Admin
                     <tr>
                         <th scope="row">Redirect URI</th>
                         <td>
-                            <input type="text" name="wp2linkedin_redirect_uri" value="<?php echo esc_attr(get_option('wp2linkedin_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'))); ?>" class="regular-text" readonly>
-                            <p class="description">Copiar esta URL en la configuración de tu app de LinkedIn.</p>
+                            <input type="text" name="wp2linkedin_redirect_uri" value="<?php echo esc_attr($redirect_uri); ?>" class="regular-text" readonly>
+                            <p class="description">Copiar esta URL exactamente en la configuración de tu app de LinkedIn.</p>
                         </td>
                     </tr>
                 </table>
