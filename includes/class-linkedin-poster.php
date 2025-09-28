@@ -8,32 +8,30 @@ class WPLP_Poster {
     public function __construct() {
         $this->token  = get_option('wp2linkedin_access_token');
         $this->org_id = get_option('wp2linkedin_default_org');
-
-        add_action('publish_post', [$this, 'publish_to_linkedin'], 10, 2);
     }
 
     public function publish_to_linkedin($post_id, $post) {
-        if (wp_is_post_revision($post_id)) return;
+        if (wp_is_post_revision($post_id)) return false;
 
         // Evitar duplicados
         if (get_post_meta($post_id, '_linkedin_posted', true)) {
             error_log("LinkedIn Poster: Post $post_id ya publicado.");
-            return;
+            return false;
         }
 
         // Validaciones
         if (!$this->token) {
             error_log("LinkedIn Poster ERROR: No hay token configurado.");
-            return;
+            return false;
         }
 
         if (!$this->org_id) {
             error_log("LinkedIn Poster ERROR: No hay organización por defecto configurada.");
-            return;
+            return false;
         }
 
         $title   = get_the_title($post_id);
-        $excerpt = wp_trim_words(strip_tags($post->post_content), 40);
+        $excerpt = $post->post_excerpt ? $post->post_excerpt : wp_trim_words(strip_tags($post->post_content), 40);
         $url     = get_permalink($post_id);
         $featured_image_id = get_post_thumbnail_id($post_id);
 
@@ -54,7 +52,7 @@ class WPLP_Poster {
             'lifecycleState' => 'PUBLISHED',
             'specificContent' => [
                 'com.linkedin.ugc.ShareContent' => [
-                    'shareCommentary' => ['text' => $title . "\n\n" . $excerpt],
+                    'shareCommentary' => ['text' => $title . "\n\n" . $excerpt . "\n\n" . $url],
                     'shareMediaCategory' => empty($media_assets) ? 'ARTICLE' : 'IMAGE',
                 ]
             ],
@@ -86,7 +84,7 @@ class WPLP_Poster {
         // Logs detallados
         if (is_wp_error($response)) {
             error_log("LinkedIn Poster ERROR (WP_Error): " . $response->get_error_message());
-            return;
+            return false;
         }
 
         $http_code = wp_remote_retrieve_response_code($response);
@@ -98,8 +96,10 @@ class WPLP_Poster {
             update_post_meta($post_id, '_linkedin_posted', 1);
             update_post_meta($post_id, '_linkedin_posted_date', current_time('mysql'));
             error_log("LinkedIn Poster: Post $post_id publicado correctamente.");
+            return true;
         } else {
             error_log("LinkedIn Poster ERROR: No se pudo publicar el post $post_id.");
+            return false;
         }
     }
 
@@ -134,7 +134,7 @@ class WPLP_Poster {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($register_data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // ⚡ activado para seguridad
         $register_response = curl_exec($ch);
         $register_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -168,7 +168,7 @@ class WPLP_Poster {
         curl_setopt($ch, CURLOPT_POSTFIELDS, $image_data);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // ⚡ activado para seguridad
         $upload_response = curl_exec($ch);
         $upload_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);

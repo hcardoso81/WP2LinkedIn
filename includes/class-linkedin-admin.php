@@ -5,12 +5,19 @@ class WPLP_Admin
 {
     public function __construct()
     {
+        // Menú y ajustes
         add_action('admin_menu', [$this, 'add_menu_page']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_ajax_wplp_save_org', [$this, 'ajax_save_org']);
+
+        add_action('wp_ajax_linkedin_publish_post', [$this, 'ajax_publish_post']); // AJAX del botón
+
+        // Meta boxes
+        add_action('add_meta_boxes', [$this, 'add_linkedin_metabox']);
     }
 
+    // --- Menu ---
     public function add_menu_page()
     {
         add_options_page(
@@ -22,6 +29,7 @@ class WPLP_Admin
         );
     }
 
+    // --- Settings ---
     public function register_settings()
     {
         register_setting('wplp_settings', 'wp2linkedin_client_id');
@@ -29,32 +37,33 @@ class WPLP_Admin
         register_setting('wplp_settings', 'wp2linkedin_redirect_uri');
     }
 
+    // --- Enqueue CSS y JS ---
     public function enqueue_assets($hook)
     {
-        if ($hook !== 'settings_page_wplp-settings') return;
+        // Solo en settings
+        if ($hook === 'settings_page_wplp-settings' || get_current_screen()->post_type === 'post') {
+            wp_enqueue_style('wplp-admin', WPLP_URL . 'assets/css/admin.css', [], '1.0');
+            wp_enqueue_script('wplp-admin', WPLP_URL . 'assets/js/admin.js', ['jquery'], '1.0', true);
 
-        wp_enqueue_style('wplp-admin', WPLP_URL . 'assets/css/admin.css', [], '1.0');
-        wp_enqueue_script('wplp-admin', WPLP_URL . 'assets/js/admin.js', ['jquery'], '1.0', true);
-
-        wp_localize_script('wplp-admin', 'wplp', [
-            'nonce' => wp_create_nonce('wplp_nonce'),
-            'ajaxurl' => admin_url('admin-ajax.php')
-        ]);
+            wp_localize_script('wplp-admin', 'wplp', [
+                'nonce'   => wp_create_nonce('linkedin_publish'),
+                'ajaxurl' => admin_url('admin-ajax.php')
+            ]);
+        }
     }
 
+    // --- Página de configuración ---
     public function render_settings_page()
     {
         $client_id     = get_option('wp2linkedin_client_id');
         $client_secret = get_option('wp2linkedin_client_secret');
         $redirect_uri  = get_option('wp2linkedin_redirect_uri', admin_url('admin.php?page=linkedin-oauth'));
-        $org_id   = get_option('wp2linkedin_default_org');
-        $org_name = $org_id; // por defecto mostramos el ID
+        $org_id        = get_option('wp2linkedin_default_org');
+        $org_name      = $org_id;
 
         if ($org_id) {
-            // Intentamos obtener el nombre usando la clase de organizaciones
             $orgClass = new WPLP_Organizations();
             $orgs     = $orgClass->get_organizations();
-
             foreach ($orgs as $org) {
                 if ($org['id'] === $org_id) {
                     $org_name = $org['name'];
@@ -118,16 +127,87 @@ class WPLP_Admin
                 </div>
             <?php endif; ?>
         </div>
+    <?php
+    }
+
+    // --- Meta box ---
+    public function add_linkedin_metabox()
+    {
+        add_meta_box(
+            'linkedin_poster',
+            'Publicar en LinkedIn',
+            [$this, 'render_linkedin_metabox'],
+            'post',
+            'side',
+            'high'
+        );
+    }
+
+    public function render_linkedin_metabox($post)
+    {
+        $posted = get_post_meta($post->ID, '_linkedin_posted', true);
+        $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
+
+        echo '<p>Estado en LinkedIn: ';
+        if ($posted) {
+            echo '<span style="color:green;">✅ Publicado</span>';
+            if ($date) echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
+        } else {
+            echo '<span style="color:#ccc;">⏳ Pendiente</span>';
+        }
+        echo '</p>';
+
+        echo '<p><button type="button" class="button button-primary" id="linkedin-publish-btn" data-post-id="' . $post->ID . '">Publicar en LinkedIn</button></p>';
+
+        wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
+
+    ?>
+        <script>
+            jQuery(document).ready(function($) {
+                $('#linkedin-publish-btn').click(function() {
+                    var data = {
+                        action: 'linkedin_publish_post',
+                        post_id: <?php echo $post->ID; ?>,
+                        security: '<?php echo wp_create_nonce("linkedin_publish"); ?>'
+                    };
+                    $.post(ajaxurl, data, function(response) {
+                        alert(response.data.message);
+                        location.reload();
+                    });
+                });
+            });
+        </script>
 <?php
     }
 
+    // --- AJAX publicar post ---
+    public function ajax_publish_post()
+    {
+        check_ajax_referer('linkedin_publish', 'security');
+
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error(['message' => 'No tienes permisos']);
+        }
+
+        $post_id = intval($_POST['post_id']);
+        if (!$post_id) wp_send_json_error(['message' => 'Post inválido']);
+
+        $poster = new WPLP_Poster();
+        $result = $poster->publish_to_linkedin($post_id, get_post($post_id));
+
+        if ($result === true) {
+            wp_send_json_success(['message' => '✅ Post publicado correctamente']);
+        } else {
+            wp_send_json_error(['message' => '❌ Error al publicar el post']);
+        }
+    }
+
+    // --- AJAX guardar organización ---
     public function ajax_save_org()
     {
         check_ajax_referer('wplp_nonce');
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error();
-        }
+        if (!current_user_can('manage_options')) wp_send_json_error();
 
         if (isset($_POST['org_id'])) {
             $org_id = sanitize_text_field($_POST['org_id']);
