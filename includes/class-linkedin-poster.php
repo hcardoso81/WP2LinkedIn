@@ -35,26 +35,44 @@ class WPLP_Poster {
         $title   = get_the_title($post_id);
         $excerpt = wp_trim_words(strip_tags($post->post_content), 40);
         $url     = get_permalink($post_id);
-        $image   = get_the_post_thumbnail_url($post_id, 'full');
+        $featured_image_id = get_post_thumbnail_id($post_id);
 
+        $media_assets = [];
+
+        // Subir imagen si existe
+        if ($featured_image_id) {
+            $media_asset = $this->upload_image_to_linkedin($featured_image_id, $this->org_id);
+            if ($media_asset) {
+                $media_assets[] = $media_asset['asset'];
+                error_log("LinkedIn Poster: Imagen subida correctamente, asset = " . $media_asset['asset']);
+            }
+        }
+
+        // Construir payload
         $body = [
             'author' => "urn:li:organization:" . $this->org_id,
             'lifecycleState' => 'PUBLISHED',
             'specificContent' => [
                 'com.linkedin.ugc.ShareContent' => [
                     'shareCommentary' => ['text' => $title . "\n\n" . $excerpt],
-                    'shareMediaCategory' => $image ? 'IMAGE' : 'ARTICLE',
-                    'media' => $image ? [[
-                        'status' => 'READY',
-                        'description' => ['text' => $excerpt],
-                        'originalUrl' => $url,
-                        'title' => ['text' => $title],
-                        'thumbnails' => [['resolvedUrl' => $image]],
-                    ]] : []
+                    'shareMediaCategory' => empty($media_assets) ? 'ARTICLE' : 'IMAGE',
                 ]
             ],
             'visibility' => ['com.linkedin.ugc.MemberNetworkVisibility' => 'PUBLIC']
         ];
+
+        // Agregar media si existe
+        if (!empty($media_assets)) {
+            $body['specificContent']['com.linkedin.ugc.ShareContent']['media'] = [];
+            foreach ($media_assets as $asset) {
+                $body['specificContent']['com.linkedin.ugc.ShareContent']['media'][] = [
+                    'status' => 'READY',
+                    'description' => ['text' => $title],
+                    'media' => $asset,
+                    'title' => ['text' => $title]
+                ];
+            }
+        }
 
         $response = wp_remote_post('https://api.linkedin.com/v2/ugcPosts', [
             'headers' => [
@@ -65,7 +83,7 @@ class WPLP_Poster {
             'body' => wp_json_encode($body)
         ]);
 
-        // Logs detallados para depuración
+        // Logs detallados
         if (is_wp_error($response)) {
             error_log("LinkedIn Poster ERROR (WP_Error): " . $response->get_error_message());
             return;
@@ -82,6 +100,84 @@ class WPLP_Poster {
             error_log("LinkedIn Poster: Post $post_id publicado correctamente.");
         } else {
             error_log("LinkedIn Poster ERROR: No se pudo publicar el post $post_id.");
+        }
+    }
+
+    private function upload_image_to_linkedin($image_id, $organization_id) {
+        $access_token = $this->token;
+
+        $image_path = get_attached_file($image_id);
+        if (!$image_path || !file_exists($image_path)) {
+            error_log("LinkedIn Upload: Imagen no encontrada - ID: $image_id");
+            return false;
+        }
+
+        // Registrar upload
+        $register_data = [
+            'registerUploadRequest' => [
+                'recipes' => ['urn:li:digitalmediaRecipe:feedshare-image'],
+                'owner' => 'urn:li:organization:' . $organization_id,
+                'serviceRelationships' => [
+                    ['relationshipType' => 'OWNER', 'identifier' => 'urn:li:userGeneratedContent']
+                ]
+            ]
+        ];
+
+        $headers = [
+            'Authorization: Bearer ' . $access_token,
+            'Content-Type' => 'application/json'
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.linkedin.com/v2/assets?action=registerUpload');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($register_data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $register_response = curl_exec($ch);
+        $register_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($register_http_code !== 200) {
+            error_log("LinkedIn Register Upload Error: HTTP $register_http_code - $register_response");
+            return false;
+        }
+
+        $register_data = json_decode($register_response, true);
+        if (!isset($register_data['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'])) {
+            error_log("LinkedIn Register Upload: No upload URL received");
+            return false;
+        }
+
+        $upload_url = $register_data['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'];
+        $asset_id = $register_data['value']['asset'];
+
+        // Subir imagen
+        $image_data = file_get_contents($image_path);
+        $mime_type = wp_get_image_mime($image_path);
+
+        $headers = [
+            'Authorization: Bearer ' . $access_token,
+            'Content-Type: ' . $mime_type
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $upload_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $image_data);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $upload_response = curl_exec($ch);
+        $upload_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($upload_http_code === 201 || $upload_http_code === 200) {
+            return ['asset' => $asset_id, 'upload_response' => $upload_response];
+        } else {
+            error_log("LinkedIn Image Upload Error: HTTP $upload_http_code - $upload_response");
+            return false;
         }
     }
 }
