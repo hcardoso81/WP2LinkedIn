@@ -26,7 +26,29 @@ function wplp_init() {
     new WPLP_OAuth();
     new WPLP_Organizations();
     new WPLP_Poster();
+
+    // Mostrar columna LinkedIn en listado de posts
+    add_filter('manage_posts_columns', function($columns) {
+        $columns['linkedin_status'] = 'LinkedIn';
+        return $columns;
+    });
+
+    add_action('manage_posts_custom_column', function($column, $post_id) {
+        if ($column === 'linkedin_status') {
+            $posted = get_post_meta($post_id, '_linkedin_posted', true);
+            if ($posted) {
+                $date = get_post_meta($post_id, '_linkedin_posted_date', true);
+                echo '<span style="color:green;">✅ Publicado</span>';
+                if ($date) {
+                    echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
+                }
+            } else {
+                echo '<span style="color:#ccc;">⏳ Pendiente</span>';
+            }
+        }
+    }, 10, 2);
 }
+
 add_action('plugins_loaded', 'wplp_init');
 
 // Registrar redirect URI predeterminada al activar el plugin
