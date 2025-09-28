@@ -1,6 +1,4 @@
-
 <?php
-
 /*
 *
 Agrega la página de ajustes en WordPress → Ajustes → WP LinkedIn Poster.
