@@ -9,26 +9,39 @@ class WPLP_Organizations {
         add_action('wp_ajax_wp2linkedin_get_orgs', [$this, 'ajax_get_organizations']);
     }
 
-    public function get_organizations() {
-        $response = wp_remote_get('https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR', [
-            'headers' => ['Authorization' => 'Bearer ' . $this->token]
-        ]);
+public function get_organizations() {
+    $response = wp_remote_get('https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR', [
+        'headers' => ['Authorization' => 'Bearer ' . $this->token]
+    ]);
 
-        if (is_wp_error($response)) return [];
+    if (is_wp_error($response)) return [];
 
-        $data = json_decode(wp_remote_retrieve_body($response), true);
-        $orgs = [];
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+    $orgs = [];
 
-        if (isset($data['elements'])) {
-            foreach ($data['elements'] as $el) {
-                if (isset($el['organizationalTarget'])) {
-                    $orgs[] = str_replace('urn:li:organization:', '', $el['organizationalTarget']);
-                }
+    if (isset($data['elements'])) {
+        foreach ($data['elements'] as $el) {
+            if (isset($el['organizationalTarget'])) {
+                $orgId = str_replace('urn:li:organization:', '', $el['organizationalTarget']);
+
+                // Obtener el nombre de la organización
+                $nameResponse = wp_remote_get("https://api.linkedin.com/v2/organizations/$orgId", [
+                    'headers' => ['Authorization' => 'Bearer ' . $this->token]
+                ]);
+
+                $nameData = json_decode(wp_remote_retrieve_body($nameResponse), true);
+                $orgName = $nameData['localizedName'] ?? $orgId;
+
+                $orgs[] = [
+                    'id' => $orgId,
+                    'name' => $orgName
+                ];
             }
         }
-
-        return $orgs;
     }
+
+    return $orgs;
+}
 
     public function ajax_get_organizations() {
         if (!current_user_can('manage_options')) wp_die();

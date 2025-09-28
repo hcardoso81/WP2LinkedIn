@@ -47,7 +47,21 @@ class WPLP_Admin
         $client_id     = get_option('wp2linkedin_client_id');
         $client_secret = get_option('wp2linkedin_client_secret');
         $redirect_uri  = get_option('wp2linkedin_redirect_uri', admin_url('admin.php?page=linkedin-oauth'));
-        $org_id        = get_option('wp2linkedin_default_org');
+        $org_id   = get_option('wp2linkedin_default_org');
+        $org_name = $org_id; // por defecto mostramos el ID
+
+        if ($org_id) {
+            // Intentamos obtener el nombre usando la clase de organizaciones
+            $orgClass = new WPLP_Organizations();
+            $orgs     = $orgClass->get_organizations();
+
+            foreach ($orgs as $org) {
+                if ($org['id'] === $org_id) {
+                    $org_name = $org['name'];
+                    break;
+                }
+            }
+        }
 
         $oauth = new WPLP_OAuth();
 ?>
@@ -89,7 +103,9 @@ class WPLP_Admin
             </p>
             <select id="wp2linkedin-org-select">
                 <?php if ($org_id): ?>
-                    <option value="<?php echo esc_attr($org_id); ?>" selected><?php echo esc_html($org_id); ?></option>
+                    <option value="<?php echo esc_attr($org_id); ?>" selected>
+                        <?php echo esc_html($org_name); ?>
+                    </option>
                 <?php endif; ?>
             </select>
             <p>
