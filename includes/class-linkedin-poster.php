@@ -6,8 +6,8 @@ class WPLP_Poster {
     private $org_id;
 
     public function __construct() {
-        $this->token  = get_option( 'wp2linkedin_access_token' );
-        $this->org_id = get_option( 'wp2linkedin_default_org' );
+        $this->token  = get_option( 'wp2linkedin_access_token', '' );
+        $this->org_id = get_option( 'wp2linkedin_default_org', '' );
 
         add_action( 'publish_post', [ $this, 'publish_to_linkedin' ], 10, 2 );
     }
@@ -16,6 +16,9 @@ class WPLP_Poster {
         // Evitar borradores, revisiones, repeticiones
         if ( wp_is_post_revision( $post_id ) ) return;
         if ( get_post_meta( $post_id, '_linkedin_posted', true ) ) return;
+
+        // Validar token y organización
+        if ( empty( $this->token ) || empty( $this->org_id ) ) return;
 
         $title   = get_the_title( $post_id );
         $excerpt = wp_trim_words( strip_tags( $post->post_content ), 40 );
@@ -29,15 +32,13 @@ class WPLP_Poster {
                 'com.linkedin.ugc.ShareContent' => [
                     'shareCommentary' => [ 'text' => $title . "\n\n" . $excerpt ],
                     'shareMediaCategory' => $image ? 'IMAGE' : 'ARTICLE',
-                    'media' => [
-                        [
-                            'status' => 'READY',
-                            'description' => [ 'text' => $excerpt ],
-                            'originalUrl' => $url,
-                            'title' => [ 'text' => $title ],
-                            'thumbnails' => $image ? [ [ 'resolvedUrl' => $image ] ] : [],
-                        ]
-                    ]
+                    'media' => $image ? [[
+                        'status' => 'READY',
+                        'description' => [ 'text' => $excerpt ],
+                        'originalUrl' => $image,
+                        'title' => [ 'text' => $title ],
+                        'thumbnails' => [[ 'resolvedUrl' => $image ]]
+                    ]] : []
                 ]
             ],
             'visibility' => [ 'com.linkedin.ugc.MemberNetworkVisibility' => 'PUBLIC' ]
@@ -54,6 +55,9 @@ class WPLP_Poster {
 
         if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) === 201 ) {
             update_post_meta( $post_id, '_linkedin_posted', 1 );
+        } else {
+            // Logging para depuración
+            error_log( 'LinkedIn posting error: ' . print_r( $response, true ) );
         }
     }
 }

@@ -1,23 +1,8 @@
 <?php
-/*
-*
-Agrega la página de ajustes en WordPress → Ajustes → WP LinkedIn Poster.
-
-Permite configurar Client ID y Client Secret.
-
-Muestra el botón de Conectar con LinkedIn (llamando a la clase WPLP_OAuth).
-
-Permite cargar y guardar la organización vía AJAX.
-
-Encola los estilos y scripts (admin.css y admin.js).
-*
-*/
-
 if (! defined('ABSPATH')) exit;
 
 class WPLP_Admin
 {
-
     public function __construct()
     {
         // Crear menú en el admin
@@ -48,13 +33,13 @@ class WPLP_Admin
     }
 
     /**
-     * Registra las opciones (Client ID y Client Secret)
+     * Registra las opciones (Client ID, Client Secret y Redirect URI)
      */
     public function register_settings()
     {
         register_setting('wplp_settings', 'wplp_client_id');
         register_setting('wplp_settings', 'wplp_client_secret');
-        register_setting('wp2linkedin_settings', 'wp2linkedin_redirect_uri');
+        register_setting('wplp_settings', 'wplp_redirect_uri');
     }
 
     /**
@@ -80,11 +65,12 @@ class WPLP_Admin
     {
         $client_id     = get_option('wplp_client_id');
         $client_secret = get_option('wplp_client_secret');
+        $redirect_uri  = get_option('wplp_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'));
         $org_id        = get_option('wplp_default_org');
 
         $oauth = new WPLP_OAuth();
 
-?>
+        ?>
         <div class="wrap wp2linkedin-settings">
             <h2>WP LinkedIn Poster – Configuración</h2>
 
@@ -102,7 +88,7 @@ class WPLP_Admin
                     <tr>
                         <th scope="row">Redirect URI</th>
                         <td>
-                            <input type="text" name="wp2linkedin_redirect_uri" value="<?php echo esc_attr(get_option('wp2linkedin_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'))); ?>" class="regular-text" readonly>
+                            <input type="text" name="wplp_redirect_uri" value="<?php echo esc_attr($redirect_uri); ?>" class="regular-text" readonly>
                             <p class="description">Copiar esta URL en la configuración de tu app de LinkedIn.</p>
                         </td>
                     </tr>
@@ -127,7 +113,7 @@ class WPLP_Admin
                 <?php endif; ?>
             </select>
         </div>
-<?php
+        <?php
     }
 
     /**

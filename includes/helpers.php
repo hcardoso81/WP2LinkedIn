@@ -4,7 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 /**
  * Hace una request genérica a la API de LinkedIn
  */
-function wp2linkedin_api_request( $method, $url, $token, $body = [] ) {
+function wp2linkedin_api_request( string $method, string $url, string $token, array $body = [] ): array|false {
+    if ( empty( $token ) ) {
+        wp2linkedin_log( 'No access token provided' );
+        return false;
+    }
+
     $args = [
         'method'  => strtoupper( $method ),
         'headers' => [
@@ -26,20 +31,25 @@ function wp2linkedin_api_request( $method, $url, $token, $body = [] ) {
     }
 
     $code = wp_remote_retrieve_response_code( $response );
-    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    $resp_body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-    wp2linkedin_log( "Request $method $url - Code: $code - Body: " . print_r( $body, true ) );
+    if ( json_last_error() !== JSON_ERROR_NONE ) {
+        wp2linkedin_log( 'JSON decode error: ' . json_last_error_msg() );
+        $resp_body = [];
+    }
+
+    wp2linkedin_log( sprintf( "Request %s %s - Code: %d - Body: %s", $method, $url, $code, print_r($resp_body, true) ) );
 
     return [
         'code' => $code,
-        'body' => $body
+        'body' => $resp_body
     ];
 }
 
 /**
  * Guarda logs en wp-content/debug.log
  */
-function wp2linkedin_log( $message ) {
+function wp2linkedin_log( string $message ): void {
     if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
         error_log( '[WP2LinkedIn] ' . $message );
     }
@@ -48,6 +58,6 @@ function wp2linkedin_log( $message ) {
 /**
  * Devuelve el access token actual
  */
-function wp2linkedin_get_token() {
-    return get_option( 'wp2linkedin_access_token' );
+function wp2linkedin_get_token(): string {
+    return get_option( 'wp2linkedin_access_token', '' );
 }

@@ -6,12 +6,10 @@ class WPLP_OAuth {
     private $client_secret;
     private $redirect_uri;
 
-
     public function __construct() {
-        $this->client_id     = get_option( 'wp2linkedin_client_id' );
-        $this->client_secret = get_option( 'wp2linkedin_client_secret' );
-        $this->redirect_uri  = admin_url( 'options-general.php?page=wp2linkedin' );
-        $this->redirect_uri  = get_option('wp2linkedin_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'));
+        $this->client_id     = get_option( 'wplp_client_id' );
+        $this->client_secret = get_option( 'wplp_client_secret' );
+        $this->redirect_uri  = get_option('wplp_redirect_uri', admin_url('admin-post.php?action=wp2linkedin_callback'));
 
         add_action( 'admin_post_wp2linkedin_callback', [ $this, 'handle_callback' ] );
     }
@@ -37,7 +35,7 @@ class WPLP_OAuth {
             $this->exchange_code_for_token( sanitize_text_field( $_GET['code'] ) );
         }
 
-        wp_redirect( admin_url( 'options-general.php?page=wp2linkedin&auth=success' ) );
+        wp_redirect( admin_url( 'options-general.php?page=wplp-settings&auth=success' ) );
         exit;
     }
 
