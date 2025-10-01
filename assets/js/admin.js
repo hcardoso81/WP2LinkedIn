@@ -45,7 +45,6 @@ jQuery(document).ready(function ($) {
     }, function (response) {
       if (response.success) {
         alert('✅ Organización guardada correctamente: ' + orgId);
-        location.reload(); // refresca la página para mostrar la notificación verde
       } else {
         alert('❌ Error al guardar la organización.');
       }

@@ -161,23 +161,6 @@ class WPLP_Admin
 
         wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
 
-    ?>
-        <script>
-            jQuery(document).ready(function($) {
-                $('#linkedin-publish-btn').click(function() {
-                    var data = {
-                        action: 'linkedin_publish_post',
-                        post_id: <?php echo $post->ID; ?>,
-                        security: '<?php echo wp_create_nonce("linkedin_publish"); ?>'
-                    };
-                    $.post(ajaxurl, data, function(response) {
-                        alert(response.data.message);
-                        location.reload();
-                    });
-                });
-            });
-        </script>
-<?php
     }
 
     // --- AJAX publicar post ---
