@@ -52,7 +52,7 @@ class WPLP_Poster {
             'lifecycleState' => 'PUBLISHED',
             'specificContent' => [
                 'com.linkedin.ugc.ShareContent' => [
-                    'shareCommentary' => ['text' => $title . "\n\n" . $excerpt . "\n\n" . $url],
+                    'shareCommentary' => ['text' => $excerpt . "\n\n" . $url],
                     'shareMediaCategory' => empty($media_assets) ? 'ARTICLE' : 'IMAGE',
                 ]
             ],

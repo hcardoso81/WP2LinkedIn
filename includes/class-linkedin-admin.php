@@ -188,7 +188,7 @@ class WPLP_Admin
     // --- AJAX guardar organización ---
     public function ajax_save_org()
     {
-        check_ajax_referer('wplp_nonce');
+        check_ajax_referer('linkedin_publish');
 
         if (!current_user_can('manage_options')) wp_send_json_error();
 
