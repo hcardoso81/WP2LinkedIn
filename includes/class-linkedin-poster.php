@@ -31,7 +31,8 @@ class WPLP_Poster {
         }
 
         $title   = get_the_title($post_id);
-        $excerpt = $post->post_excerpt ? $post->post_excerpt : wp_trim_words(strip_tags($post->post_content), 40);
+        $content_linkedin = function_exists('get_field') ? get_field('content_linkedin', $post_id) : '';
+        $clean_content = wp_strip_all_tags($content_linkedin);
         $url     = get_permalink($post_id);
         $featured_image_id = get_post_thumbnail_id($post_id);
 
@@ -52,7 +53,7 @@ class WPLP_Poster {
             'lifecycleState' => 'PUBLISHED',
             'specificContent' => [
                 'com.linkedin.ugc.ShareContent' => [
-                    'shareCommentary' => ['text' => $excerpt . "\n\n" . $url],
+                    'shareCommentary' => ['text' => $clean_content  . "\n\n" . $url],
                     'shareMediaCategory' => empty($media_assets) ? 'ARTICLE' : 'IMAGE',
                 ]
             ],
