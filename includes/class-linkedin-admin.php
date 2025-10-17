@@ -143,25 +143,28 @@ class WPLP_Admin
         );
     }
 
-    public function render_linkedin_metabox($post)
-    {
-        $posted = get_post_meta($post->ID, '_linkedin_posted', true);
-        $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
+public function render_linkedin_metabox($post)
+{
+    $posted = get_post_meta($post->ID, '_linkedin_posted', true);
+    $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
 
-        echo '<p>Estado en LinkedIn: ';
-        if ($posted) {
-            echo '<span style="color:green;">✅ Publicado</span>';
-            if ($date) echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
-        } else {
-            echo '<span style="color:#ccc;">⏳ Pendiente</span>';
-        }
-        echo '</p>';
+    $content_linkedin = function_exists('get_field') ? get_field('content_linkedin', $post->ID) : '';
 
-        echo '<p><button type="button" class="button button-primary" id="linkedin-publish-btn" data-post-id="' . $post->ID . '">Publicar en LinkedIn</button></p>';
-
-        wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
-
+    echo '<p>Estado en LinkedIn: ';
+    if ($posted) {
+        echo '<span style="color:green;">✅ Publicado</span>';
+        if ($date) echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
+    } else {
+        echo '<span style="color:#ccc;">⏳ Pendiente</span>';
     }
+    echo '</p>';
+
+    // El botón ahora se desactiva si el contenido está vacío
+    $disabled = empty(trim($content_linkedin)) ? 'disabled' : '';
+    echo '<p><button type="button" class="button button-primary" id="linkedin-publish-btn" data-post-id="' . $post->ID . '" ' . $disabled . '>Publicar en LinkedIn</button></p>';
+
+    wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
+}
 
     // --- AJAX publicar post ---
     public function ajax_publish_post()
