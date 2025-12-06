@@ -28,8 +28,11 @@ function wplp_init() {
     new WPLP_Poster();
 
     // Mostrar columna LinkedIn en listado de posts
-    add_filter('manage_posts_columns', function($columns) {
-        $columns['linkedin_status'] = 'LinkedIn';
+    add_filter('manage_posts_columns', function ($columns) {
+        $screen = get_current_screen();
+        if ($screen && $screen->post_type === 'post') {
+            $columns['linkedin_status'] = 'LinkedIn';
+        }
         return $columns;
     });
 
