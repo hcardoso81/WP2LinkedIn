@@ -14,6 +14,7 @@ define('WPLP_PATH', plugin_dir_path(__FILE__));
 define('WPLP_URL', plugin_dir_url(__FILE__));
 
 // Incluir archivos
+require_once WPLP_PATH . 'includes/class-wplp-logger.php';
 require_once WPLP_PATH . 'includes/class-linkedin-admin.php';
 require_once WPLP_PATH . 'includes/class-linkedin-oauth.php';
 require_once WPLP_PATH . 'includes/class-linkedin-organizations.php';
@@ -27,8 +28,7 @@ function wplp_init() {
     new WPLP_Organizations();
     new WPLP_Poster();
 
-    // Mostrar columna LinkedIn en listado de posts
-    add_filter('manage_posts_columns', function ($columns) {
+     add_filter('manage_posts_columns', function ($columns) {
         $screen = get_current_screen();
         if ($screen && $screen->post_type === 'post') {
             $columns['linkedin_status'] = 'LinkedIn';
@@ -99,3 +99,4 @@ function wplp_register_acf_field() {
     }
 }
 add_action('acf/init', 'wplp_register_acf_field');
+

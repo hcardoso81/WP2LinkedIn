@@ -1,32 +1,40 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-class WPLP_Poster {
+class WPLP_Poster
+{
     private $token;
     private $org_id;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->token  = get_option('wp2linkedin_access_token');
         $this->org_id = get_option('wp2linkedin_default_org');
     }
 
-    public function publish_to_linkedin($post_id, $post) {
+    public function publish_to_linkedin($post_id, $post)
+    {
         if (wp_is_post_revision($post_id)) return false;
 
         // Evitar duplicados
         if (get_post_meta($post_id, '_linkedin_posted', true)) {
-            error_log("LinkedIn Poster: Post $post_id ya publicado.");
+            WPLP_Logger::error('Post ya publicado en LinkedIn', [
+                'post_id' => $post_id
+            ]);
             return false;
         }
-
         // Validaciones
         if (!$this->token) {
-            error_log("LinkedIn Poster ERROR: No hay token configurado.");
+            WPLP_Logger::error('No hay token configurado.', [
+                'post_id' => $post_id
+            ]);
             return false;
         }
 
         if (!$this->org_id) {
-            error_log("LinkedIn Poster ERROR: No hay organización por defecto configurada.");
+            WPLP_Logger::error('No hay organización por defecto configurada.', [
+                'post_id' => $post_id
+            ]);
             return false;
         }
 
@@ -43,7 +51,9 @@ class WPLP_Poster {
             $media_asset = $this->upload_image_to_linkedin($featured_image_id, $this->org_id);
             if ($media_asset) {
                 $media_assets[] = $media_asset['asset'];
-                error_log("LinkedIn Poster: Imagen subida correctamente, asset = " . $media_asset['asset']);
+                WPLP_Logger::info('Imagen subida correctamente, asset = ' . $media_asset['asset'], [
+                'post_id' => $post_id
+            ]);
             }
         }
 
@@ -84,32 +94,39 @@ class WPLP_Poster {
 
         // Logs detallados
         if (is_wp_error($response)) {
-            error_log("LinkedIn Poster ERROR (WP_Error): " . $response->get_error_message());
+            WPLP_Logger::error('(WP_Error): ' . $response->get_error_message(), [
+                'post_id' => $post_id
+            ]);            
             return false;
         }
 
         $http_code = wp_remote_retrieve_response_code($response);
-        $body_resp = wp_remote_retrieve_body($response);
 
-        error_log("LinkedIn Poster: HTTP $http_code - Response: $body_resp");
 
         if ($http_code === 201) {
             update_post_meta($post_id, '_linkedin_posted', 1);
             update_post_meta($post_id, '_linkedin_posted_date', current_time('mysql'));
-            error_log("LinkedIn Poster: Post $post_id publicado correctamente.");
+            WPLP_Logger::info('Post publicado correctamente', [
+                'post_id' => $post_id
+            ]);
             return true;
         } else {
-            error_log("LinkedIn Poster ERROR: No se pudo publicar el post $post_id.");
+            WPLP_Logger::error('Error al publicar el post', [
+                'post_id' => $post_id
+            ]);
             return false;
         }
     }
 
-    private function upload_image_to_linkedin($image_id, $organization_id) {
+    private function upload_image_to_linkedin($image_id, $organization_id)
+    {
         $access_token = $this->token;
 
         $image_path = get_attached_file($image_id);
         if (!$image_path || !file_exists($image_path)) {
-            error_log("LinkedIn Upload: Imagen no encontrada - ID: $image_id");
+            WPLP_Logger::error('Imagen no encontrada', [
+                'image_id' => $image_id
+            ]);
             return false;
         }
 
@@ -141,13 +158,18 @@ class WPLP_Poster {
         curl_close($ch);
 
         if ($register_http_code !== 200) {
-            error_log("LinkedIn Register Upload Error: HTTP $register_http_code - $register_response");
+            WPLP_Logger::error('Error al registrar la imagen', [
+                'image_id' => $image_id,
+                'http_code' => $register_http_code
+            ]);
             return false;
         }
 
         $register_data = json_decode($register_response, true);
         if (!isset($register_data['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'])) {
-            error_log("LinkedIn Register Upload: No upload URL received");
+            WPLP_Logger::error('inkedIn Register Upload: No upload URL received', [
+                'image_id' => $image_id
+            ]);
             return false;
         }
 
@@ -177,7 +199,10 @@ class WPLP_Poster {
         if ($upload_http_code === 201 || $upload_http_code === 200) {
             return ['asset' => $asset_id, 'upload_response' => $upload_response];
         } else {
-            error_log("LinkedIn Image Upload Error: HTTP $upload_http_code - $upload_response");
+            WPLP_Logger::error('Error al subir la imagen', [
+                'image_id' => $image_id,
+                'http_code' => $upload_http_code
+            ]);
             return false;
         }
     }
