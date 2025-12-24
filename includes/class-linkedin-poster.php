@@ -111,10 +111,15 @@ class WPLP_Poster
             ]);
             return true;
         } else {
-            WPLP_Logger::error('Error al publicar el post', [
-                'post_id' => $post_id
-            ]);
-            return false;
+    $response_body = wp_remote_retrieve_body($response);
+
+    WPLP_Logger::error('Error al publicar el post en LinkedIn', [
+        'post_id'   => $post_id,
+        'http_code' => $http_code,
+        'response'  => $response_body,
+    ]);
+
+    return false;
         }
     }
 
