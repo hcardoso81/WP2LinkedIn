@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) exit;
 */
 
 require_once WPLP_PATH . 'includes/core/class-wplp-logger.php';
+require_once WPLP_PATH . 'includes/core/class-wplp-plugin.php';
+
 
 /*
 |--------------------------------------------------------------------------

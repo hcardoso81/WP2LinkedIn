@@ -14,7 +14,8 @@ wp2linkedin/
 │   │   └── class-wplp-poster.php
 │   │
 │   ├── core/
-│   │   └── class-wplp-logger.php
+│   │   ├── class-wplp-logger.php
+|   |   └── class-wplp-plugin.php 
 │   │
 │   └── helpers.php
 │
