@@ -1,0 +1,23 @@
+wp2linkedin/
+│
+├── wp2linkedin.php
+│
+├── includes/
+│   ├── bootstrap.php
+│   │
+│   ├── admin/
+│   │   └── class-wplp-admin.php
+│   │
+│   ├── linkedin/
+│   │   ├── class-wplp-oauth.php
+│   │   ├── class-wplp-organizations.php
+│   │   └── class-wplp-poster.php
+│   │
+│   ├── core/
+│   │   └── class-wplp-logger.php
+│   │
+│   └── helpers.php
+│
+├── assets/
+│   ├── css/
+│   └── js/
