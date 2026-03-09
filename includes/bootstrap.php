@@ -21,6 +21,7 @@ spl_autoload_register(function ($class) {
         WPLP_PATH . 'includes/core/class-' . str_replace('_', '-', $class) . '.php',
         WPLP_PATH . 'includes/admin/class-' . str_replace('_', '-', $class) . '.php',
         WPLP_PATH . 'includes/linkedin/class-' . str_replace('_', '-', $class) . '.php',
+        WPLP_PATH . 'includes/content/class-' . str_replace('_', '-', $class) . '.php',
     ];
 
     foreach ($paths as $file) {

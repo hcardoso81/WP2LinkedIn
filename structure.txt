@@ -3,22 +3,27 @@ wp2linkedin/
 ├── wp2linkedin.php
 │
 ├── includes/
+│
 │   ├── bootstrap.php
-│   │
+│
+│   ├── core/
+│   │   ├── class-wplp-plugin.php
+│   │   └── class-wplp-logger.php
+│
 │   ├── admin/
-│   │   └── class-wplp-admin.php
-│   │
+│   │   ├── class-wplp-admin.php
+│   │   └── class-wplp-admin-columns.php
+│
 │   ├── linkedin/
 │   │   ├── class-wplp-oauth.php
 │   │   ├── class-wplp-organizations.php
 │   │   └── class-wplp-poster.php
-│   │
-│   ├── core/
-│   │   ├── class-wplp-logger.php
-|   |   └── class-wplp-plugin.php 
-│   │
+│
+│   ├── content/
+│   │   └── class-wplp-content-fields.php
+│
 │   └── helpers.php
 │
-├── assets/
-│   ├── css/
-│   └── js/
+└── assets/
+    ├── css/
+    └── js/
