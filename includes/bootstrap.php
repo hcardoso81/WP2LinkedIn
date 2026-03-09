@@ -4,31 +4,33 @@ if (!defined('ABSPATH')) exit;
 
 /*
 |--------------------------------------------------------------------------
-| Core
+| Autoloader simple estilo PSR-4
 |--------------------------------------------------------------------------
 */
 
-require_once WPLP_PATH . 'includes/core/class-wplp-logger.php';
-require_once WPLP_PATH . 'includes/core/class-wplp-plugin.php';
+spl_autoload_register(function ($class) {
 
+    // solo cargamos clases de nuestro plugin
+    if (strpos($class, 'WPLP_') !== 0) {
+        return;
+    }
 
-/*
-|--------------------------------------------------------------------------
-| LinkedIn
-|--------------------------------------------------------------------------
-*/
+    $class = strtolower($class);
 
-require_once WPLP_PATH . 'includes/linkedin/class-wplp-oauth.php';
-require_once WPLP_PATH . 'includes/linkedin/class-wplp-organizations.php';
-require_once WPLP_PATH . 'includes/linkedin/class-wplp-poster.php';
+    $paths = [
+        WPLP_PATH . 'includes/core/class-' . str_replace('_', '-', $class) . '.php',
+        WPLP_PATH . 'includes/admin/class-' . str_replace('_', '-', $class) . '.php',
+        WPLP_PATH . 'includes/linkedin/class-' . str_replace('_', '-', $class) . '.php',
+    ];
 
-/*
-|--------------------------------------------------------------------------
-| Admin
-|--------------------------------------------------------------------------
-*/
+    foreach ($paths as $file) {
+        if (file_exists($file)) {
+            require_once $file;
+            return;
+        }
+    }
 
-require_once WPLP_PATH . 'includes/admin/class-wplp-admin.php';
+});
 
 /*
 |--------------------------------------------------------------------------
