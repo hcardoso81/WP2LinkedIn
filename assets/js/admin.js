@@ -80,66 +80,55 @@ jQuery(document).ready(function ($) {
 
 
   // --- Publicar post en LinkedIn ---
-  $('#linkedin-publish-btn').on('click', function (e) {
+jQuery(document).ready(function ($) {
 
-    e.preventDefault();
+    $('#linkedin-publish-btn').on('click', function (e) {
+        e.preventDefault();
 
-    var $btn = $(this);
-    var postId = $btn.data('post-id');
+        var $btn = $(this);
+        var postId = $btn.data('post-id');
 
-    if (!postId) {
-
-      alert('❌ Post ID no definido.');
-      return;
-
-    }
-
-    var originalText = $btn.text();
-
-    $btn.prop('disabled', true).text('Publicando...');
-
-    $.post(wplp.ajaxurl, {
-
-      action: 'linkedin_publish_post',
-      post_id: postId,
-      security: wplp.nonce
-
-    }, function (response) {
-
-      if (response.success) {
-
-        alert(response.data.message);
-
-        location.reload();
-
-      } else {
-
-        var message = response?.data?.message || '❌ Error al publicar.';
-
-        alert(message);
-
-        // Detectar token expirado
-        if (message.includes('Token de LinkedIn expirado')) {
-
-          if (confirm('El token de LinkedIn expiró. ¿Quieres ir a reconectar ahora?')) {
-
-            window.location.href = 'admin.php?page=wplp-reconnect';
-
-          }
-
+        if (!postId) {
+            $('#linkedin-status').html('❌ Post ID no definido.');
+            return;
         }
 
-        $btn.prop('disabled', false).text(originalText);
+        var originalText = $btn.text();
+        $btn.prop('disabled', true).text('Publicando...');
+        $('#linkedin-status').html(''); // limpiar mensajes previos
 
-      }
+        $.post(wplp.ajaxurl, {
+            action: 'linkedin_publish_post',
+            post_id: postId,
+            security: wplp.nonce
+        }, function (response) {
 
-    }).fail(function () {
+            if (response.success) {
+                $('#linkedin-status').html('<span style="color:green;">' + response.data.message + '</span>');
+                location.reload();
+            } else {
+                var message = response?.data?.message || '❌ Error al publicar.';
 
-      alert('❌ Error de AJAX al publicar el post.');
-      $btn.prop('disabled', false).text(originalText);
+                // Insertar mensaje HTML directamente
+                $('#linkedin-status').html('<span style="color:red;">' + message + '</span>');
 
+                // Detectar token expirado para navegación
+                if (message.includes('Reconectar ahora')) {
+                    $('#linkedin-status a').on('click', function (e) {
+                        e.preventDefault();
+                        window.location.href = $(this).attr('href');
+                    });
+                }
+
+                $btn.prop('disabled', false).text(originalText);
+            }
+
+        }).fail(function () {
+            $('#linkedin-status').html('❌ Error de AJAX al publicar el post.');
+            $btn.prop('disabled', false).text(originalText);
+        });
     });
 
-  });
+});
 
 });

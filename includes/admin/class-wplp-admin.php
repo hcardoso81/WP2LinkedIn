@@ -254,41 +254,41 @@ class WPLP_Admin
         );
     }
 
-    public function render_linkedin_metabox($post)
-    {
-        $posted = get_post_meta($post->ID, '_linkedin_posted', true);
-        $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
+   public function render_linkedin_metabox($post)
+{
+    $posted = get_post_meta($post->ID, '_linkedin_posted', true);
+    $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
 
-        echo '<p>Estado en LinkedIn: ';
+    echo '<p>Estado en LinkedIn: ';
 
-        if ($posted) {
-
-            echo '<span style="color:green;">✅ Publicado</span>';
-
-            if ($date)
-                echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
-        } else {
-
-            echo '<span style="color:#ccc;">⏳ Pendiente</span>';
+    if ($posted) {
+        echo '<span style="color:green;">✅ Publicado</span>';
+        if ($date) {
+            echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
         }
-
-        echo '</p>';
-
-        $disabled = $posted ? 'disabled' : '';
-
-        echo '<p>
-                <button type="button"
-                    class="button button-primary"
-                    id="linkedin-publish-btn"
-                    data-post-id="' . $post->ID . '"
-                    ' . $disabled . '>
-                    Publicar en LinkedIn
-                </button>
-              </p>';
-
-        wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
+    } else {
+        echo '<span style="color:#ccc;">⏳ Pendiente</span>';
     }
 
+    echo '</p>';
+
+    $disabled = $posted ? 'disabled' : '';
+
+    echo '<p>
+            <button type="button"
+                class="button button-primary"
+                id="linkedin-publish-btn"
+                data-post-id="' . $post->ID . '"
+                ' . $disabled . '>
+                Publicar en LinkedIn
+            </button>
+          </p>';
+
+    // ✅ Contenedor para mensajes HTML (token expirado, errores, etc.)
+    echo '<div id="linkedin-status" style="margin-top:10px;"></div>';
+
+    wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
+}
     // --- AJAX publicar ---
    public function ajax_publish_post()
 {
