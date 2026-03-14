@@ -50,3 +50,4 @@ class WPLP_Admin_Columns {
     }
 
 }
+

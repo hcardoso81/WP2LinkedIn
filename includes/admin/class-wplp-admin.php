@@ -10,11 +10,13 @@ class WPLP_Admin
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_ajax_wplp_save_org', [$this, 'ajax_save_org']);
-
-        add_action('wp_ajax_linkedin_publish_post', [$this, 'ajax_publish_post']); // AJAX del botón
+        add_action('wp_ajax_linkedin_publish_post', [$this, 'ajax_publish_post']);
 
         // Meta boxes
         add_action('add_meta_boxes', [$this, 'add_linkedin_metabox']);
+
+        // Aviso de token expirado
+        add_action('admin_notices', [$this, 'token_expired_notice']);
     }
 
     // --- Menu ---
@@ -32,11 +34,11 @@ class WPLP_Admin
 
         add_submenu_page(
             'wplp-dashboard',
-            'Configuración',
-            'Configuración',
+            'Reconectar LinkedIn',
+            'Reconectar LinkedIn',
             'manage_options',
-            'wplp-settings',
-            [$this, 'render_settings_page']
+            'wplp-reconnect',
+            [$this, 'render_reconnect_page']
         );
     }
 
@@ -53,7 +55,7 @@ class WPLP_Admin
     {
         $screen = get_current_screen();
 
-        if ($hook === 'settings_page_wplp-settings' || ($screen && $screen->post_type === 'post')) {
+        if ($hook === 'toplevel_page_wplp-dashboard' || ($screen && $screen->post_type === 'post')) {
 
             wp_enqueue_style(
                 'wplp-admin',
@@ -82,15 +84,24 @@ class WPLP_Admin
     {
         $client_id     = get_option('wp2linkedin_client_id');
         $client_secret = get_option('wp2linkedin_client_secret');
-        $redirect_uri  = get_option('wp2linkedin_redirect_uri', admin_url('admin.php?page=linkedin-oauth'));
-        $org_id        = get_option('wp2linkedin_default_org');
-        $org_name      = $org_id;
+
+        $redirect_uri  = get_option(
+            'wp2linkedin_redirect_uri',
+            admin_url('admin-post.php?action=wp2linkedin_callback')
+        );
+
+        $org_id   = get_option('wp2linkedin_default_org');
+        $org_name = $org_id;
 
         if ($org_id) {
+
             $orgClass = new WPLP_Organizations();
             $orgs     = $orgClass->get_organizations();
+
             foreach ($orgs as $org) {
+
                 if ($org['id'] === $org_id) {
+
                     $org_name = $org['name'];
                     break;
                 }
@@ -100,40 +111,74 @@ class WPLP_Admin
         $oauth = new WPLP_OAuth();
 ?>
         <div class="wrap wp2linkedin-settings">
+
             <h2>WP LinkedIn Poster – Configuración</h2>
 
             <form method="post" action="options.php">
                 <?php settings_fields('wplp_settings'); ?>
+
                 <table class="form-table">
+
                     <tr>
-                        <th scope="row"><label for="wp2linkedin_client_id">Client ID</label></th>
-                        <td><input type="text" name="wp2linkedin_client_id" value="<?php echo esc_attr($client_id); ?>" class="regular-text"></td>
+                        <th scope="row">Client ID</th>
+                        <td>
+                            <input type="text" name="wp2linkedin_client_id"
+                                value="<?php echo esc_attr($client_id); ?>"
+                                class="regular-text">
+                        </td>
                     </tr>
+
                     <tr>
-                        <th scope="row"><label for="wp2linkedin_client_secret">Client Secret</label></th>
-                        <td><input type="password" name="wp2linkedin_client_secret" value="<?php echo esc_attr($client_secret); ?>" class="regular-text"></td>
+                        <th scope="row">Client Secret</th>
+                        <td>
+                            <input type="password" name="wp2linkedin_client_secret"
+                                value="<?php echo esc_attr($client_secret); ?>"
+                                class="regular-text">
+                        </td>
                     </tr>
+
                     <tr>
                         <th scope="row">Redirect URI</th>
                         <td>
-                            <input type="text" name="wp2linkedin_redirect_uri" value="<?php echo esc_attr($redirect_uri); ?>" class="regular-text">
-                            <p class="description">Copiar esta URL exactamente en la configuración de tu app de LinkedIn.</p>
+                            <input type="text"
+                                name="wp2linkedin_redirect_uri"
+                                value="<?php echo esc_attr($redirect_uri); ?>"
+                                class="regular-text">
+
+                            <p class="description">
+                                Copiar esta URL exactamente en la app de LinkedIn.
+                            </p>
                         </td>
                     </tr>
+
                 </table>
+
                 <?php submit_button(); ?>
             </form>
 
             <h3>Autenticación con LinkedIn</h3>
+
             <?php if ($oauth->is_connected()): ?>
-                <div class="wp2linkedin-status success">✅ Conectado a LinkedIn</div>
+
+                <div class="wp2linkedin-status success">
+                    ✅ Conectado a LinkedIn
+                </div>
+
             <?php else: ?>
-                <a class="button button-primary" href="<?php echo esc_url($oauth->get_auth_url()); ?>">Conectar con LinkedIn</a>
+
+                <a class="button button-primary"
+                    href="<?php echo esc_url($oauth->get_auth_url()); ?>">
+                    Conectar con LinkedIn
+                </a>
+
             <?php endif; ?>
 
             <h3>Organización por defecto</h3>
+
             <p>
-                <button id="wp2linkedin-load-orgs" class="button">Cargar organizaciones</button>
+                <button id="wp2linkedin-load-orgs" class="button">
+                    Cargar organizaciones
+                </button>
             </p>
 
             <select id="wp2linkedin-org-select">
@@ -145,15 +190,54 @@ class WPLP_Admin
             </select>
 
             <p>
-                <button id="wp2linkedin-confirm-org" class="button button-primary">Confirmar organización</button>
+                <button id="wp2linkedin-confirm-org"
+                    class="button button-primary">
+                    Confirmar organización
+                </button>
             </p>
 
-            <?php if ($org_id): ?>
-                <div class="wp2linkedin-status success">
-                    ✅ Organización por defecto: <strong><?php echo esc_html($org_id); ?></strong>
-                </div>
-            <?php endif; ?>
         </div>
+    <?php
+    }
+
+    // --- Página reconectar ---
+    public function render_reconnect_page()
+    {
+        if (isset($_POST['wplp_reset_token'])) {
+
+            delete_option('wp2linkedin_access_token');
+
+            echo '<div class="notice notice-success"><p>✅ Token eliminado correctamente.</p></div>';
+        }
+
+        $oauth = new WPLP_OAuth();
+    ?>
+
+        <div class="wrap">
+
+            <h1>Reconectar LinkedIn</h1>
+
+            <p>
+                Si el token expiró puedes eliminarlo y volver a conectar tu cuenta de LinkedIn.
+            </p>
+
+            <form method="post">
+                <?php submit_button('Eliminar token actual', 'delete', 'wplp_reset_token'); ?>
+            </form>
+
+            <hr>
+
+            <p>
+                Después de eliminar el token puedes generar uno nuevo:
+            </p>
+
+            <a class="button button-primary"
+                href="<?php echo esc_url($oauth->get_auth_url()); ?>">
+                Reconectar con LinkedIn
+            </a>
+
+        </div>
+
 <?php
     }
 
@@ -175,18 +259,22 @@ class WPLP_Admin
         $posted = get_post_meta($post->ID, '_linkedin_posted', true);
         $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
 
-        $content_linkedin = function_exists('get_field') ? get_field('content_linkedin', $post->ID) : '';
-
         echo '<p>Estado en LinkedIn: ';
+
         if ($posted) {
+
             echo '<span style="color:green;">✅ Publicado</span>';
-            if ($date) echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
+
+            if ($date)
+                echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
         } else {
+
             echo '<span style="color:#ccc;">⏳ Pendiente</span>';
         }
+
         echo '</p>';
 
-        $disabled = (empty(trim($content_linkedin)) || $posted) ? 'disabled' : '';
+        $disabled = $posted ? 'disabled' : '';
 
         echo '<p>
                 <button type="button"
@@ -201,37 +289,70 @@ class WPLP_Admin
         wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
     }
 
-    // --- AJAX publicar post ---
-    public function ajax_publish_post()
-    {
-        check_ajax_referer('linkedin_publish', 'security');
+    // --- AJAX publicar ---
+   public function ajax_publish_post()
+{
+    check_ajax_referer('linkedin_publish', 'security');
 
-        if (!current_user_can('edit_posts')) {
-            wp_send_json_error(['message' => 'No tienes permisos']);
-        }
-
-        $post_id = intval($_POST['post_id']);
-        if (!$post_id) {
-            wp_send_json_error(['message' => 'Post inválido']);
-        }
-
-        // Evitar doble publicación
-        $already_posted = get_post_meta($post_id, '_linkedin_posted', true);
-        if ($already_posted) {
-            wp_send_json_error([
-                'message' => 'Este post ya fue publicado en LinkedIn'
-            ]);
-        }
-
-        $poster = new WPLP_Poster();
-        $result = $poster->publish_to_linkedin($post_id, get_post($post_id));
-
-        if ($result === true) {
-            wp_send_json_success(['message' => '✅ Post publicado correctamente']);
-        } else {
-            wp_send_json_error(['message' => '❌ Error al publicar el post']);
-        }
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error(['message' => 'No tienes permisos']);
     }
+
+    $post_id = intval($_POST['post_id']);
+
+    if (!$post_id) {
+        wp_send_json_error(['message' => 'Post inválido']);
+    }
+
+    $already_posted = get_post_meta($post_id, '_linkedin_posted', true);
+
+    if ($already_posted) {
+        wp_send_json_error(['message' => 'Este post ya fue publicado']);
+    }
+
+    $poster = new WPLP_Poster();
+
+    $post = get_post($post_id);
+
+    $result = $poster->publish_to_linkedin($post_id, $post);
+
+    if ($result === true) {
+        wp_send_json_success([
+            'message' => 'Publicado correctamente en LinkedIn'
+        ]);
+    }
+
+    // --- NUEVO: Manejo de token expirado ---
+    if (is_array($result) && isset($result['error']) && $result['error'] === 'token_expired') {
+        $reconnect_url = admin_url('admin.php?page=wplp-reconnect');
+        wp_send_json_error([
+            'message' => '⚠ Tu token de LinkedIn expiró. <a href="' . esc_url($reconnect_url) . '">Reconectar ahora</a>'
+        ]);
+    }
+    // -------------------------------------------
+
+    if (is_array($result) && isset($result['message'])) {
+        $message = $result['message'];
+
+        // Traducir errores de LinkedIn a mensajes amigables
+        if (strpos($message, 'organizationUgcAuthorizations') !== false) {
+            $message = '❌ Tu usuario no tiene permisos para publicar en esta página de LinkedIn. Verifica que seas administrador o Content Admin de la página.';
+        }
+
+        if (strpos($message, 'AUTH_DELEGATION_DENIED') !== false) {
+            $message = '❌ LinkedIn rechazó la publicación por falta de permisos.';
+        }
+
+        wp_send_json_error([
+            'message' => $message,
+            'http_code' => $result['http_code'] ?? null
+        ]);
+    }
+
+    wp_send_json_error([
+        'message' => 'Error desconocido al publicar'
+    ]);
+}
 
     // --- AJAX guardar organización ---
     public function ajax_save_org()
@@ -252,5 +373,22 @@ class WPLP_Admin
         }
 
         wp_send_json_error();
+    }
+
+    // --- Aviso token expirado ---
+    public function token_expired_notice()
+    {
+        if (!current_user_can('manage_options')) return;
+
+        $expired = get_option('wplp_token_expired');
+
+        if (!$expired) return;
+
+        $url = admin_url('admin.php?page=wplp-reconnect');
+
+        echo '<div class="notice notice-error">';
+        echo '<p>⚠ <strong>LinkedIn Poster:</strong> Tu token expiró. ';
+        echo '<a href="' . esc_url($url) . '">Reconectar ahora</a></p>';
+        echo '</div>';
     }
 }

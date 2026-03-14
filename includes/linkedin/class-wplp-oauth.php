@@ -1,12 +1,14 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-class WPLP_OAuth {
+class WPLP_OAuth
+{
     private $client_id;
     private $client_secret;
     private $redirect_uri;
 
-    public function __construct() {
+    public function __construct()
+    {
         // Cargar configuraciones desde la base de datos
         $this->load_settings();
 
@@ -27,7 +29,8 @@ class WPLP_OAuth {
     /**
      * Cargar configuraciones desde la base de datos
      */
-    private function load_settings() {
+    private function load_settings()
+    {
         $this->client_id = get_option('wp2linkedin_client_id', '');
         $this->client_secret = get_option('wp2linkedin_client_secret', '');
         $this->redirect_uri = get_option(
@@ -39,14 +42,16 @@ class WPLP_OAuth {
     /**
      * Verificar si la configuración está completa
      */
-    public function is_configured() {
+    public function is_configured()
+    {
         return !empty($this->client_id) && !empty($this->client_secret);
     }
 
     /**
      * Generar URL de autorización de LinkedIn
      */
-    public function get_auth_url() {
+    public function get_auth_url()
+    {
         if (!$this->is_configured()) return false;
 
         $state = wp_create_nonce('wp2linkedin_auth');
@@ -55,7 +60,8 @@ class WPLP_OAuth {
             'response_type' => 'code',
             'client_id'     => $this->client_id,
             'redirect_uri'  => $this->redirect_uri,
-            'scope'         => 'r_basicprofile w_member_social w_organization_social rw_organization_admin',
+            //'scope'         => 'r_basicprofile w_member_social w_organization_social rw_organization_admin',
+            'scope' => 'r_basicprofile r_organization_admin w_member_social w_organization_social rw_organization_admin',
             'state'         => $state,
         ]);
     }
@@ -63,28 +69,38 @@ class WPLP_OAuth {
     /**
      * Manejar callback de LinkedIn
      */
-    public function handle_callback() {
+    public function handle_callback()
+    {
         if (!isset($_GET['state']) || !wp_verify_nonce($_GET['state'], 'wp2linkedin_auth')) {
             wp_die('Invalid state. Posible ataque CSRF.');
         }
 
         if (isset($_GET['code'])) {
-            $result = $this->exchange_code_for_token(sanitize_text_field($_GET['code']));
+
+            $result = $this->exchange_code_for_token(
+                sanitize_text_field($_GET['code'])
+            );
+
             if ($result) {
-                wp_redirect(admin_url('options-general.php?page=wplp-settings&auth=success'));
+                wp_redirect(admin_url('admin.php?page=wplp-dashboard&auth=success'));
             } else {
-                wp_redirect(admin_url('options-general.php?page=wplp-settings&auth=error'));
+                wp_redirect(admin_url('admin.php?page=wplp-dashboard&auth=error'));
             }
+
         } else {
-            wp_redirect(admin_url('options-general.php?page=wplp-settings&auth=no_code'));
+
+            wp_redirect(admin_url('admin.php?page=wplp-dashboard&auth=no_code'));
+
         }
+
         exit;
     }
 
     /**
      * Intercambiar código por token de LinkedIn
      */
-    private function exchange_code_for_token($code) {
+    private function exchange_code_for_token($code)
+    {
         $response = wp_remote_post('https://www.linkedin.com/oauth/v2/accessToken', [
             'body' => [
                 'grant_type'    => 'authorization_code',
@@ -105,8 +121,16 @@ class WPLP_OAuth {
         $data = json_decode($body, true);
 
         if (isset($data['access_token'])) {
+
             update_option('wp2linkedin_access_token', $data['access_token']);
-            update_option('wp2linkedin_token_expires', time() + intval($data['expires_in']));
+            update_option(
+                'wp2linkedin_token_expires',
+                time() + intval($data['expires_in'])
+            );
+
+            // Limpiar flag de token expirado
+            delete_option('wplp_token_expired');
+
             return true;
         }
 
@@ -116,24 +140,29 @@ class WPLP_OAuth {
     /**
      * Verificar si hay token válido
      */
-    public function is_connected() {
+    public function is_connected()
+    {
         $token = get_option('wp2linkedin_access_token');
         $expires = get_option('wp2linkedin_token_expires');
+
         return ($token && $expires && $expires > time());
     }
 
     /**
      * AJAX: Probar conexión a LinkedIn
      */
-    public function ajax_test_connection() {
+    public function ajax_test_connection()
+    {
         if (!current_user_can('manage_options')) {
             wp_send_json_error('No tienes permisos suficientes');
         }
 
         $nonce_valid = false;
+
         if (isset($_POST['nonce'])) {
-            $nonce_valid = wp_verify_nonce($_POST['nonce'], 'linkedin_test') ||
-                           wp_verify_nonce($_POST['nonce'], 'wplp_nonce');
+            $nonce_valid =
+                wp_verify_nonce($_POST['nonce'], 'linkedin_test') ||
+                wp_verify_nonce($_POST['nonce'], 'wplp_nonce');
         }
 
         if (!$nonce_valid) {
@@ -141,6 +170,7 @@ class WPLP_OAuth {
         }
 
         $access_token = get_option('wp2linkedin_access_token');
+
         if (!$access_token) {
             wp_send_json_error('No hay token de acceso');
         }
@@ -154,10 +184,13 @@ class WPLP_OAuth {
         ]);
 
         if (is_wp_error($response)) {
-            wp_send_json_error('Error de conexión: ' . $response->get_error_message());
+            wp_send_json_error(
+                'Error de conexión: ' . $response->get_error_message()
+            );
         }
 
         $http_code = wp_remote_retrieve_response_code($response);
+
         if ($http_code === 200) {
             wp_send_json_success('Conexión exitosa');
         } else {
@@ -168,7 +201,8 @@ class WPLP_OAuth {
     /**
      * AJAX: Desconectar
      */
-    public function ajax_disconnect() {
+    public function ajax_disconnect()
+    {
         if (!current_user_can('manage_options')) {
             wp_send_json_error('No tienes permisos suficientes');
         }
@@ -185,17 +219,40 @@ class WPLP_OAuth {
     /**
      * Mostrar debug en admin
      */
-    public function debug_notice() {
-        if (current_user_can('manage_options') && isset($_GET['page']) && $_GET['page'] === 'wplp-settings') {
+    public function debug_notice()
+    {
+        if (
+            current_user_can('manage_options') &&
+            isset($_GET['page']) &&
+            $_GET['page'] === 'wplp-dashboard'
+        ) {
+
             if (isset($_GET['debug'])) {
+
                 echo '<div class="notice notice-info">';
-                echo '<h4>Debug WP2LinkedIn OAuth:</h4>';
+                echo '<h4>Debug WP LinkedIn Poster OAuth:</h4>';
                 echo '<ul>';
-                echo '<li><strong>Client ID:</strong> ' . ($this->client_id ? 'Configurado' : 'NO configurado') . '</li>';
-                echo '<li><strong>Client Secret:</strong> ' . ($this->client_secret ? 'Configurado' : 'NO configurado') . '</li>';
-                echo '<li><strong>Redirect URI:</strong> ' . esc_html($this->redirect_uri) . '</li>';
-                echo '<li><strong>Conectado:</strong> ' . ($this->is_connected() ? 'SÍ' : 'NO') . '</li>';
-                echo '<li><strong>Token:</strong> ' . (get_option('wp2linkedin_access_token') ? 'Existe' : 'No existe') . '</li>';
+
+                echo '<li><strong>Client ID:</strong> ' .
+                    ($this->client_id ? 'Configurado' : 'NO configurado') .
+                    '</li>';
+
+                echo '<li><strong>Client Secret:</strong> ' .
+                    ($this->client_secret ? 'Configurado' : 'NO configurado') .
+                    '</li>';
+
+                echo '<li><strong>Redirect URI:</strong> ' .
+                    esc_html($this->redirect_uri) .
+                    '</li>';
+
+                echo '<li><strong>Conectado:</strong> ' .
+                    ($this->is_connected() ? 'SÍ' : 'NO') .
+                    '</li>';
+
+                echo '<li><strong>Token:</strong> ' .
+                    (get_option('wp2linkedin_access_token') ? 'Existe' : 'No existe') .
+                    '</li>';
+
                 echo '</ul>';
                 echo '</div>';
             }
@@ -205,7 +262,8 @@ class WPLP_OAuth {
     /**
      * Obtener configuraciones actuales
      */
-    public function get_settings() {
+    public function get_settings()
+    {
         return [
             'client_id' => $this->client_id,
             'client_secret' => $this->client_secret,
