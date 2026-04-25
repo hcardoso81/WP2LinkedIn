@@ -56,7 +56,7 @@ jQuery(document).ready(function ($) {
 
       action: 'wplp_save_org',
       org_id: orgId,
-      _ajax_nonce: wplp.nonce
+      security: wplp.nonce
 
     }, function (response) {
 

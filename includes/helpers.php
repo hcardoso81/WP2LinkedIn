@@ -85,3 +85,30 @@ function wp2linkedin_api_request(
 function wp2linkedin_get_token(): string {
     return (string) get_option('wp2linkedin_access_token', '');
 }
+
+/**
+ * Devuelve el contenido personalizado que se usara para LinkedIn.
+ */
+function wplp_get_linkedin_content($post_id): string {
+    $content = get_post_meta((int) $post_id, 'content_linkedin', true);
+
+    return is_string($content) ? $content : '';
+}
+
+/**
+ * Limpia el contenido de LinkedIn para validar y enviar texto plano.
+ */
+function wplp_clean_linkedin_content(string $content): string {
+    $content = wp_strip_all_tags($content);
+    $content = html_entity_decode($content, ENT_QUOTES, get_bloginfo('charset'));
+    $content = str_replace("\xC2\xA0", ' ', $content);
+
+    return trim($content);
+}
+
+/**
+ * Indica si el post ya tiene contenido real para publicar en LinkedIn.
+ */
+function wplp_has_linkedin_content($post_id): bool {
+    return wplp_clean_linkedin_content(wplp_get_linkedin_content($post_id)) !== '';
+}

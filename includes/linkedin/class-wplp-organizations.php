@@ -45,6 +45,8 @@ public function get_organizations() {
 
     public function ajax_get_organizations() {
         if (!current_user_can('manage_options')) wp_die();
+        check_ajax_referer('linkedin_publish');
+
         $orgs = $this->get_organizations();
         wp_send_json($orgs);
     }

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: WP LinkedIn Poster
- * Description: Connect WordPress with LinkedIn to publish posts directly to your company page. Supports OAuth authentication, organization selection, and custom LinkedIn content via ACF.
- * Version: 1.1
+ * Description: Publica posts en LinkedIn desde WordPress con OAuth, seleccion de organizacion, reconexion, contenido ACF y columnas de contenido/publicacion.
+ * Version: 2.1
  * Author: Hernan Cardoso
  * Author URI: https://www.linkedin.com/in/cardosohernan/
  */

@@ -56,8 +56,20 @@ class WPLP_Poster
         }
 
         $title   = get_the_title($post_id);
-        $content_linkedin = function_exists('get_field') ? get_field('content_linkedin', $post_id) : '';
-        $clean_content = wp_strip_all_tags($content_linkedin);
+        $content_linkedin = wplp_get_linkedin_content($post_id);
+        $clean_content = wplp_clean_linkedin_content($content_linkedin);
+
+        if ($clean_content === '') {
+            WPLP_Logger::error('Contenido de LinkedIn vacio', [
+                'post_id' => $post_id
+            ]);
+
+            return [
+                'error' => 'linkedin_content_missing',
+                'message' => 'Completa el campo Contenido para LinkedIn antes de publicar.'
+            ];
+        }
+
         $url     = get_permalink($post_id);
         $featured_image_id = get_post_thumbnail_id($post_id);
 

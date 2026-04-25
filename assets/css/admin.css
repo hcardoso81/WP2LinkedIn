@@ -32,3 +32,31 @@
   border: 1px solid #dc3232;
   color: #750000;
 }
+
+.fixed .column-linkedin_content {
+  width: 130px;
+  text-align: center;
+}
+
+.wplp-column-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.wplp-column-icon .dashicons {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 20px;
+}
+
+.wplp-column-icon--ok .dashicons {
+  color: #00a32a;
+}
+
+.wplp-column-icon--empty .dashicons {
+  color: #d63638;
+}

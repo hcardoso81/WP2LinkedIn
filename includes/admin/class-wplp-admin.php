@@ -61,14 +61,14 @@ class WPLP_Admin
                 'wplp-admin',
                 WPLP_URL . 'assets/css/admin.css',
                 [],
-                '1.0'
+                '1.1'
             );
 
             wp_enqueue_script(
                 'wplp-admin',
                 WPLP_URL . 'assets/js/admin.js',
                 ['jquery'],
-                '1.0',
+                '1.1',
                 true
             );
 
@@ -258,6 +258,7 @@ class WPLP_Admin
 {
     $posted = get_post_meta($post->ID, '_linkedin_posted', true);
     $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
+    $has_content = wplp_has_linkedin_content($post->ID);
 
     echo '<p>Estado en LinkedIn: ';
 
@@ -272,7 +273,21 @@ class WPLP_Admin
 
     echo '</p>';
 
-    $disabled = $posted ? 'disabled' : '';
+    echo '<p>Contenido LinkedIn: ';
+
+    if ($has_content) {
+        echo '<span class="wplp-column-icon wplp-column-icon--ok" title="Con contenido para LinkedIn"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span><span class="screen-reader-text">Con contenido para LinkedIn</span></span>';
+    } else {
+        echo '<span class="wplp-column-icon wplp-column-icon--empty" title="Contenido LinkedIn vacio"><span class="dashicons dashicons-dismiss" aria-hidden="true"></span><span class="screen-reader-text">Contenido LinkedIn vacio</span></span>';
+    }
+
+    echo '</p>';
+
+    if (!$posted && !$has_content) {
+        echo '<p class="description">Completa el campo Contenido para LinkedIn y guarda el post antes de publicar.</p>';
+    }
+
+    $disabled = ($posted || !$has_content) ? 'disabled' : '';
 
     echo '<p>
             <button type="button"
