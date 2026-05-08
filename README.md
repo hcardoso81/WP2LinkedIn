@@ -2,7 +2,7 @@
 
 WP LinkedIn Poster es un plugin para WordPress que permite publicar posts directamente en una pagina de empresa de LinkedIn.
 
-El plugin conecta WordPress con LinkedIn mediante OAuth, permite seleccionar la organizacion donde se publicara el contenido, agrega un campo personalizado para preparar el texto especifico de LinkedIn y muestra estados claros dentro del administrador de WordPress.
+El plugin conecta WordPress con LinkedIn mediante OAuth, permite seleccionar la organizacion donde se publicara el contenido, agrega un campo personalizado para preparar el texto especifico de LinkedIn y muestra estados editables dentro del administrador de WordPress.
 
 ## Funcionalidades
 
@@ -29,11 +29,19 @@ Ese campo permite escribir una version especifica del contenido que se enviara a
 Cada post incluye un metabox "Publicar en LinkedIn" con:
 
 * Estado de publicacion en LinkedIn.
+* Selector para cambiar el estado operativo del post.
 * Indicador de si el contenido para LinkedIn esta cargado.
 * Boton para publicar manualmente en LinkedIn.
 * Mensajes de error o reconexion cuando corresponde.
 
-Si el campo de contenido para LinkedIn esta vacio, el boton de publicacion queda deshabilitado.
+Los estados disponibles son:
+
+* **Pendiente**: el post todavia puede publicarse desde el boton.
+* **Publicado**: estado asignado automaticamente cuando la publicacion desde el boton fue exitosa. No se puede elegir manualmente.
+* **Publicado manualmente**: marca que el post ya fue publicado fuera del plugin y bloquea el boton de publicacion.
+* **Programado para publicar**: marca que el post queda reservado para una publicacion futura y bloquea el boton manual.
+
+Si el campo de contenido para LinkedIn esta vacio, o el estado bloquea la publicacion manual, el boton de publicacion queda deshabilitado.
 
 ### Imagen destacada
 
@@ -44,11 +52,11 @@ Cuando el post tiene imagen destacada, el plugin intenta subirla a LinkedIn y as
 El listado de posts muestra informacion rapida para administrar publicaciones:
 
 * **Contenido LinkedIn**: muestra un check si el campo `content_linkedin` tiene contenido, o una X si esta vacio.
-* **LinkedIn**: muestra si el post esta pendiente o si ya fue publicado. Cuando fue publicado, tambien muestra la fecha y hora.
+* **LinkedIn**: muestra el estado actual del post en LinkedIn. Cuando fue publicado, tambien muestra la fecha y hora.
 
 ### Prevencion de duplicados
 
-El plugin evita publicar dos veces el mismo post en LinkedIn usando el meta `_linkedin_posted`.
+El plugin evita publicar dos veces el mismo post en LinkedIn usando el meta `_linkedin_posted` y el estado normalizado `_linkedin_status`.
 
 ### Logs
 
@@ -80,6 +88,7 @@ Para poder publicar, el post debe cumplir estas condiciones:
 
 * Tener contenido en el campo "Contenido para LinkedIn".
 * No haber sido publicado previamente en LinkedIn.
+* Tener estado `Pendiente`.
 * Tener un token de LinkedIn valido.
 * Tener una organizacion de LinkedIn seleccionada.
 

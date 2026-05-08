@@ -4,7 +4,7 @@ Lineamientos para agentes que trabajen en este repositorio.
 
 ## Contexto del proyecto
 
-Este repositorio contiene el plugin WordPress **WP LinkedIn Poster**. Su objetivo es publicar posts de WordPress en una pagina de empresa de LinkedIn usando OAuth, una organizacion seleccionada, contenido personalizado via ACF y publicacion manual desde el administrador.
+Este repositorio contiene el plugin WordPress **WP LinkedIn Poster**. Su objetivo es publicar posts de WordPress en una pagina de empresa de LinkedIn usando OAuth, una organizacion seleccionada, contenido personalizado via ACF, estados de publicacion y publicacion manual desde el administrador.
 
 El plugin esta pensado para WordPress 6.0+ y PHP 7.4+. Depende de Advanced Custom Fields para el campo `content_linkedin`.
 
@@ -25,7 +25,7 @@ El plugin esta pensado para WordPress 6.0+ y PHP 7.4+. Depende de Advanced Custo
   - Clases: `WPLP_*`.
   - Funciones: `wplp_*` o `wp2linkedin_*`, segun el patron existente.
   - Opciones: `wp2linkedin_*` o `wplp_*`, segun corresponda.
-  - Meta keys: usar el estilo existente, por ejemplo `_linkedin_posted` y `_linkedin_posted_date`.
+  - Meta keys: usar el estilo existente, por ejemplo `_linkedin_status`, `_linkedin_posted` y `_linkedin_posted_date`.
 - Las clases deben vivir en el directorio que corresponde a su responsabilidad y usar el nombre de archivo `class-...` en minusculas con guiones, compatible con el autoloader de `includes/bootstrap.php`.
 - Evitar introducir frameworks, dependencias externas o cambios de arquitectura grandes sin una razon clara.
 - Conservar el estilo PHP actual del proyecto: codigo simple, procedural solo para bootstrap/helpers, clases para responsabilidades principales.
@@ -56,16 +56,29 @@ if (!defined('ABSPATH')) exit;
 ## Flujo LinkedIn
 
 - La publicacion debe seguir evitando duplicados con `_linkedin_posted`.
+- El estado normalizado de LinkedIn vive en `_linkedin_status`.
+- Estados soportados:
+  - `pending`: pendiente y publicable desde el boton si cumple las validaciones.
+  - `published`: publicado por el plugin; solo debe asignarse luego de una publicacion exitosa desde el boton.
+  - `manual_published`: publicado manualmente fuera del plugin; debe bloquear el boton de publicacion.
+  - `scheduled`: programado para publicar; debe bloquear el boton de publicacion manual.
+- No permitir seleccionar manualmente el estado `published` desde la metabox. Ese estado solo se alcanza mediante publicacion exitosa en LinkedIn.
 - Antes de publicar, validar:
   - Token presente y no expirado.
   - Organizacion por defecto configurada.
   - Campo `content_linkedin` con contenido real.
   - Post no publicado previamente.
+  - Estado compatible con publicacion manual.
 - Usar los helpers de contenido:
   - `wplp_get_linkedin_content()`
   - `wplp_clean_linkedin_content()`
   - `wplp_has_linkedin_content()`
-- Cuando se publiquen posts correctamente, actualizar `_linkedin_posted` y `_linkedin_posted_date`.
+- Usar los helpers de estado cuando corresponda:
+  - `wplp_get_linkedin_statuses()`
+  - `wplp_get_linkedin_status()`
+  - `wplp_is_linkedin_publish_locked()`
+  - `wplp_get_linkedin_status_display()`
+- Cuando se publiquen posts correctamente, actualizar `_linkedin_status` con `published`, `_linkedin_posted` y `_linkedin_posted_date`.
 - Para errores de LinkedIn, devolver mensajes accionables en el admin y registrar detalles tecnicos con `WPLP_Logger`.
 - Si se detecta token expirado, mantener el flujo existente: `wplp_token_expired` y pagina de reconexion.
 
@@ -75,6 +88,7 @@ if (!defined('ABSPATH')) exit;
 - Las columnas del listado de posts viven en `WPLP_Admin_Columns`.
 - Cargar assets solo donde se necesitan: pagina del plugin o pantalla de edicion/listado de posts.
 - Mantener textos del admin en espanol, claros y orientados a accion.
+- La metabox "Publicar en LinkedIn" debe permitir cambiar estados operativos, pero no elegir `published` manualmente.
 - Si se agrega interaccion AJAX, actualizar tambien `assets/js/admin.js` y localizar datos con `wp_localize_script()` cuando haga falta.
 
 ## Logs y errores
@@ -114,3 +128,4 @@ Para cambios de UI/admin, revisar manualmente en WordPress:
 - Revisar `git status --short` antes de editar si el trabajo parece amplio.
 - Mantener los cambios acotados al pedido actual.
 - Si hay que tocar el flujo OAuth o publicacion, preferir cambios pequenos y verificables.
+- Al finalizar cualquier cambio, sugerir un mensaje de commit en formato Conventional Commits, por ejemplo `feat: add editable linkedin status`.
