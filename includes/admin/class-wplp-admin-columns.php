@@ -46,23 +46,17 @@ class WPLP_Admin_Columns {
         if ($column !== 'linkedin_status') {
             return;
         }
+        $status = wplp_get_linkedin_status($post_id);
+        $display = wplp_get_linkedin_status_display($status);
+        $date = get_post_meta($post_id, '_linkedin_posted_date', true);
 
-        $posted = get_post_meta($post_id, '_linkedin_posted', true);
+        echo '<span style="color:' . esc_attr($display['color']) . ';">';
+        echo '<span class="dashicons ' . esc_attr($display['icon']) . '" aria-hidden="true"></span> ';
+        echo esc_html($display['label']);
+        echo '</span>';
 
-        if ($posted) {
-
-            $date = get_post_meta($post_id, '_linkedin_posted_date', true);
-
-            echo '<span style="color:green;">✅ Publicado</span>';
-
-            if ($date) {
-                echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
-            }
-
-        } else {
-
-            echo '<span style="color:#ccc;">⏳ Pendiente</span>';
-
+        if ($date && in_array($status, ['published', 'manual_published'], true)) {
+            echo '<br><small>' . esc_html(date('d/m/Y H:i', strtotime($date))) . '</small>';
         }
 
     }

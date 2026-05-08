@@ -33,9 +33,10 @@ class WPLP_Poster
     // ------------------------------------------------------
 
         // Evitar duplicados
-        if (get_post_meta($post_id, '_linkedin_posted', true)) {
+        if (get_post_meta($post_id, '_linkedin_posted', true) || wplp_is_linkedin_publish_locked($post_id)) {
             WPLP_Logger::error('Post ya publicado en LinkedIn', [
-                'post_id' => $post_id
+                'post_id' => $post_id,
+                'status' => wplp_get_linkedin_status($post_id)
             ]);
             return false;
         }
@@ -158,6 +159,7 @@ class WPLP_Poster
         if ($http_code === 201) {
 
             update_post_meta($post_id, '_linkedin_posted', 1);
+            update_post_meta($post_id, '_linkedin_status', 'published');
             update_post_meta($post_id, '_linkedin_posted_date', current_time('mysql'));
 
             WPLP_Logger::info('Post publicado correctamente', [

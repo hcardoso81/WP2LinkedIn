@@ -14,6 +14,7 @@ class WPLP_Admin
 
         // Meta boxes
         add_action('add_meta_boxes', [$this, 'add_linkedin_metabox']);
+        add_action('save_post_post', [$this, 'save_linkedin_metabox']);
 
         // Aviso de token expirado
         add_action('admin_notices', [$this, 'token_expired_notice']);
@@ -61,7 +62,7 @@ class WPLP_Admin
                 'wplp-admin',
                 WPLP_URL . 'assets/css/admin.css',
                 [],
-                '1.1'
+                '1.2'
             );
 
             wp_enqueue_script(
@@ -254,56 +255,125 @@ class WPLP_Admin
         );
     }
 
-   public function render_linkedin_metabox($post)
-{
-    $posted = get_post_meta($post->ID, '_linkedin_posted', true);
-    $date   = get_post_meta($post->ID, '_linkedin_posted_date', true);
-    $has_content = wplp_has_linkedin_content($post->ID);
+    public function render_linkedin_metabox($post)
+    {
+        $status = wplp_get_linkedin_status($post->ID);
+        $status_display = wplp_get_linkedin_status_display($status);
+        $statuses = wplp_get_linkedin_statuses();
+        $date = get_post_meta($post->ID, '_linkedin_posted_date', true);
+        $has_content = wplp_has_linkedin_content($post->ID);
+        $publish_locked = wplp_is_linkedin_publish_locked($post->ID);
 
-    echo '<p>Estado en LinkedIn: ';
+        echo '<p><strong>Estado en LinkedIn:</strong></p>';
 
-    if ($posted) {
-        echo '<span style="color:green;">✅ Publicado</span>';
-        if ($date) {
-            echo '<br><small>' . date('d/m/Y H:i', strtotime($date)) . '</small>';
+        echo '<p class="wplp-status-row">';
+        echo '<span class="dashicons ' . esc_attr($status_display['icon']) . '" style="color:' . esc_attr($status_display['color']) . ';" aria-hidden="true"></span> ';
+        echo '<span style="color:' . esc_attr($status_display['color']) . ';">' . esc_html($status_display['label']) . '</span>';
+
+        if ($date && in_array($status, ['published', 'manual_published'], true)) {
+            echo '<br><small>' . esc_html(date('d/m/Y H:i', strtotime($date))) . '</small>';
         }
-    } else {
-        echo '<span style="color:#ccc;">⏳ Pendiente</span>';
+
+        echo '</p>';
+
+        echo '<p>';
+        echo '<label for="wplp_linkedin_status"><strong>Cambiar estado</strong></label>';
+        echo '<select id="wplp_linkedin_status" name="wplp_linkedin_status" class="widefat">';
+
+        foreach ($statuses as $value => $label) {
+            if ($value === 'published') {
+                continue;
+            }
+
+            echo '<option value="' . esc_attr($value) . '"' . selected($status, $value, false) . '>' . esc_html($label) . '</option>';
+        }
+
+        echo '</select>';
+        echo '</p>';
+
+        echo '<p>Contenido LinkedIn: ';
+
+        if ($has_content) {
+            echo '<span class="wplp-column-icon wplp-column-icon--ok" title="Con contenido para LinkedIn"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span><span class="screen-reader-text">Con contenido para LinkedIn</span></span>';
+        } else {
+            echo '<span class="wplp-column-icon wplp-column-icon--empty" title="Contenido LinkedIn vacio"><span class="dashicons dashicons-dismiss" aria-hidden="true"></span><span class="screen-reader-text">Contenido LinkedIn vacio</span></span>';
+        }
+
+        echo '</p>';
+
+        if (!$publish_locked && !$has_content) {
+            echo '<p class="description">Completa el campo Contenido para LinkedIn y guarda el post antes de publicar.</p>';
+        }
+
+        if ($publish_locked) {
+            echo '<p class="description">Este estado bloquea la publicacion manual desde el boton.</p>';
+        }
+
+        $disabled = ($publish_locked || !$has_content) ? 'disabled' : '';
+
+        echo '<p>
+                <button type="button"
+                    class="button button-primary"
+                    id="linkedin-publish-btn"
+                    data-post-id="' . esc_attr($post->ID) . '"
+                    ' . $disabled . '>
+                    Publicar en LinkedIn
+                </button>
+              </p>';
+
+        echo '<div id="linkedin-status" style="margin-top:10px;"></div>';
+
+        wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
     }
 
-    echo '</p>';
+    public function save_linkedin_metabox($post_id)
+    {
+        if (!isset($_POST['linkedin_publish_nonce'])) {
+            return;
+        }
 
-    echo '<p>Contenido LinkedIn: ';
+        if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['linkedin_publish_nonce'])), 'linkedin_publish')) {
+            return;
+        }
 
-    if ($has_content) {
-        echo '<span class="wplp-column-icon wplp-column-icon--ok" title="Con contenido para LinkedIn"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span><span class="screen-reader-text">Con contenido para LinkedIn</span></span>';
-    } else {
-        echo '<span class="wplp-column-icon wplp-column-icon--empty" title="Contenido LinkedIn vacio"><span class="dashicons dashicons-dismiss" aria-hidden="true"></span><span class="screen-reader-text">Contenido LinkedIn vacio</span></span>';
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        if (wp_is_post_revision($post_id)) {
+            return;
+        }
+
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+        if (!isset($_POST['wplp_linkedin_status'])) {
+            return;
+        }
+
+        $status = sanitize_text_field(wp_unslash($_POST['wplp_linkedin_status']));
+        $statuses = wplp_get_linkedin_statuses();
+
+        if (!isset($statuses[$status]) || $status === 'published') {
+            return;
+        }
+
+        update_post_meta($post_id, '_linkedin_status', $status);
+
+        if (in_array($status, ['published', 'manual_published'], true)) {
+            update_post_meta($post_id, '_linkedin_posted', 1);
+
+            if (!get_post_meta($post_id, '_linkedin_posted_date', true)) {
+                update_post_meta($post_id, '_linkedin_posted_date', current_time('mysql'));
+            }
+
+            return;
+        }
+
+        delete_post_meta($post_id, '_linkedin_posted');
+        delete_post_meta($post_id, '_linkedin_posted_date');
     }
-
-    echo '</p>';
-
-    if (!$posted && !$has_content) {
-        echo '<p class="description">Completa el campo Contenido para LinkedIn y guarda el post antes de publicar.</p>';
-    }
-
-    $disabled = ($posted || !$has_content) ? 'disabled' : '';
-
-    echo '<p>
-            <button type="button"
-                class="button button-primary"
-                id="linkedin-publish-btn"
-                data-post-id="' . $post->ID . '"
-                ' . $disabled . '>
-                Publicar en LinkedIn
-            </button>
-          </p>';
-
-    // ✅ Contenedor para mensajes HTML (token expirado, errores, etc.)
-    echo '<div id="linkedin-status" style="margin-top:10px;"></div>';
-
-    wp_nonce_field('linkedin_publish', 'linkedin_publish_nonce');
-}
     // --- AJAX publicar ---
    public function ajax_publish_post()
 {
@@ -323,6 +393,14 @@ class WPLP_Admin
 
     if ($already_posted) {
         wp_send_json_error(['message' => 'Este post ya fue publicado']);
+    }
+
+    if (wplp_is_linkedin_publish_locked($post_id)) {
+        $status = wplp_get_linkedin_status_display(wplp_get_linkedin_status($post_id));
+
+        wp_send_json_error([
+            'message' => 'No se puede publicar porque el estado actual es: ' . $status['label']
+        ]);
     }
 
     $poster = new WPLP_Poster();

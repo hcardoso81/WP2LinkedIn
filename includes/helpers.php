@@ -112,3 +112,72 @@ function wplp_clean_linkedin_content(string $content): string {
 function wplp_has_linkedin_content($post_id): bool {
     return wplp_clean_linkedin_content(wplp_get_linkedin_content($post_id)) !== '';
 }
+
+/**
+ * Estados posibles de publicacion en LinkedIn.
+ */
+function wplp_get_linkedin_statuses(): array {
+    return [
+        'pending' => 'Pendiente',
+        'published' => 'Publicado',
+        'manual_published' => 'Publicado manualmente',
+        'scheduled' => 'Programado para publicar',
+    ];
+}
+
+/**
+ * Devuelve el estado normalizado de LinkedIn para un post.
+ */
+function wplp_get_linkedin_status($post_id): string {
+    $status = get_post_meta((int) $post_id, '_linkedin_status', true);
+    $statuses = wplp_get_linkedin_statuses();
+
+    if (is_string($status) && isset($statuses[$status])) {
+        return $status;
+    }
+
+    if (get_post_meta((int) $post_id, '_linkedin_posted', true)) {
+        return 'published';
+    }
+
+    return 'pending';
+}
+
+/**
+ * Indica si el estado actual bloquea una nueva publicacion manual.
+ */
+function wplp_is_linkedin_publish_locked($post_id): bool {
+    $status = wplp_get_linkedin_status($post_id);
+
+    return in_array($status, ['published', 'manual_published', 'scheduled'], true);
+}
+
+/**
+ * Devuelve datos de presentacion para un estado de LinkedIn.
+ */
+function wplp_get_linkedin_status_display($status): array {
+    $display = [
+        'pending' => [
+            'label' => 'Pendiente',
+            'color' => '#8a6d3b',
+            'icon' => 'dashicons-clock',
+        ],
+        'published' => [
+            'label' => 'Publicado',
+            'color' => '#00a32a',
+            'icon' => 'dashicons-yes-alt',
+        ],
+        'manual_published' => [
+            'label' => 'Publicado manualmente',
+            'color' => '#00a32a',
+            'icon' => 'dashicons-yes',
+        ],
+        'scheduled' => [
+            'label' => 'Programado para publicar',
+            'color' => '#2271b1',
+            'icon' => 'dashicons-calendar-alt',
+        ],
+    ];
+
+    return $display[$status] ?? $display['pending'];
+}

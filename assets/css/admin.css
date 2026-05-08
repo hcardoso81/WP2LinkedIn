@@ -60,3 +60,11 @@
 .wplp-column-icon--empty .dashicons {
   color: #d63638;
 }
+
+.wplp-status-row .dashicons {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  line-height: 18px;
+  vertical-align: text-bottom;
+}
