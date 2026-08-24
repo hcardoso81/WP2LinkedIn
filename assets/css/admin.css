@@ -39,6 +39,19 @@
   text-align: center;
 }
 
+.wplp-column-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wplp-column-header-icon .dashicons {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 20px;
+}
+
 .wplp-column-icon {
   display: inline-flex;
   align-items: center;

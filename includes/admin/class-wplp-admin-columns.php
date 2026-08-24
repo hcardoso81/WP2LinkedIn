@@ -19,8 +19,14 @@ class WPLP_Admin_Columns {
         }
 
         if ($post_type === 'post') {
-            $columns['linkedin_content'] = 'Contenido LinkedIn';
-            $columns['linkedin_status'] = 'Publicado en LinkedIn';
+            $columns['linkedin_content'] = '<span class="wplp-column-header-icon" title="Contenido LinkedIn">'
+                . '<span class="dashicons dashicons-media-text" aria-hidden="true"></span>'
+                . '<span class="screen-reader-text">Contenido LinkedIn</span>'
+                . '</span>';
+            $columns['linkedin_status'] = '<span class="wplp-column-header-icon" title="Publicado en LinkedIn">'
+                . '<span class="dashicons dashicons-linkedin" aria-hidden="true"></span>'
+                . '<span class="screen-reader-text">Publicado en LinkedIn</span>'
+                . '</span>';
         }
 
         return $columns;
