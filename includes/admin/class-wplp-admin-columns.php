@@ -20,7 +20,7 @@ class WPLP_Admin_Columns {
 
         if ($post_type === 'post') {
             $columns['linkedin_content'] = 'Contenido LinkedIn';
-            $columns['linkedin_status'] = 'LinkedIn';
+            $columns['linkedin_status'] = 'Publicado en LinkedIn';
         }
 
         return $columns;
@@ -48,16 +48,12 @@ class WPLP_Admin_Columns {
         }
         $status = wplp_get_linkedin_status($post_id);
         $display = wplp_get_linkedin_status_display($status);
-        $date = get_post_meta($post_id, '_linkedin_posted_date', true);
-
-        echo '<span style="color:' . esc_attr($display['color']) . ';">';
-        echo '<span class="dashicons ' . esc_attr($display['icon']) . '" aria-hidden="true"></span> ';
-        echo esc_html($display['label']);
+        echo '<span class="wplp-column-icon wplp-column-status"'
+            . ' title="' . esc_attr($display['label']) . '"'
+            . ' style="color:' . esc_attr($display['color']) . ';">';
+        echo '<span class="dashicons ' . esc_attr($display['icon']) . '" aria-hidden="true"></span>';
+        echo '<span class="screen-reader-text">' . esc_html($display['label']) . '</span>';
         echo '</span>';
-
-        if ($date && in_array($status, ['published', 'manual_published'], true)) {
-            echo '<br><small>' . esc_html(date('d/m/Y H:i', strtotime($date))) . '</small>';
-        }
 
     }
 

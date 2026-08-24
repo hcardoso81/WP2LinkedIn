@@ -33,7 +33,8 @@
   color: #750000;
 }
 
-.fixed .column-linkedin_content {
+.fixed .column-linkedin_content,
+.fixed .column-linkedin_status {
   width: 130px;
   text-align: center;
 }
